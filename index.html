@@ -1,254 +1,904 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CleberLab — Projetos e Protótipos</title>
+
+  <title>CleberLab | Gestão de Projetos</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
 
+<body>
 <div class="app">
+
+  <!-- MENU LATERAL -->
   <aside class="sidebar" id="sidebar">
+
     <div class="brand">
       <img src="logo-cleberlab.jpg" alt="Logo CleberLab">
       <div>
         <strong>CleberLab</strong>
-        <small>Suas ideias em prática</small>
+        <small>Gestão de projetos</small>
       </div>
     </div>
 
-    <p class="nav-label">MEU ESPAÇO</p>
-    <button class="nav-link active" data-page="dashboard"><i class="fa-solid fa-house"></i> Início</button>
-    <button class="nav-link" data-page="projects"><i class="fa-solid fa-flask"></i> Meus projetos</button>
-    <button class="nav-link" data-page="tasks"><i class="fa-solid fa-list-check"></i> Minhas tarefas</button>
-    <button class="nav-link" data-page="materials"><i class="fa-solid fa-boxes-stacked"></i> Materiais e custos</button>
-    <button class="nav-link" data-page="tests"><i class="fa-solid fa-vial"></i> Testes e melhorias</button>
+    <div class="nav-label">ESPAÇO DE TRABALHO</div>
 
-    <p class="nav-label">REGISTROS DO PROJETO</p>
-    <button class="nav-link" data-page="technical"><i class="fa-solid fa-file-lines"></i> Relatório técnico</button>
-    <button class="nav-link" data-page="notebook"><i class="fa-solid fa-book-open"></i> Diário de bordo</button>
-    <button class="nav-link" data-page="compare"><i class="fa-solid fa-code-compare"></i> Comparar protótipos</button>
+    <button class="nav-link active" data-page="dashboard">
+      <i class="fa-solid fa-house"></i> Visão geral
+    </button>
 
-    <div class="side-foot">CleberLab © 2026<br>Organize. Crie. Teste. Melhore.</div>
+    <button class="nav-link" data-page="projects">
+      <i class="fa-solid fa-flask"></i> Meus projetos
+    </button>
+
+    <button class="nav-link" data-page="tasks">
+      <i class="fa-solid fa-list-check"></i> Tarefas
+    </button>
+
+    <button class="nav-link" data-page="materials">
+      <i class="fa-solid fa-boxes-stacked"></i> Materiais e custos
+    </button>
+
+    <button class="nav-link" data-page="tests">
+      <i class="fa-solid fa-vial-circle-check"></i> Testes e melhorias
+    </button>
+
+    <div class="nav-label">CRIATIVIDADE</div>
+
+    <button class="nav-link" data-page="ideas">
+      <i class="fa-solid fa-lightbulb"></i> Gerador de ideias
+    </button>
+
+    <div class="nav-label">DOCUMENTAÇÃO</div>
+
+    <button class="nav-link" data-page="technical">
+      <i class="fa-solid fa-file-lines"></i> Relatório técnico
+    </button>
+
+    <button class="nav-link" data-page="notebook">
+      <i class="fa-solid fa-book-open"></i> Diário de bordo
+    </button>
+
+    <button class="nav-link" data-page="compare">
+      <i class="fa-solid fa-code-compare"></i> Comparar protótipos
+    </button>
+
+    <div class="side-foot">
+      CleberLab © 2026<br>
+      Transformando ideias em projetos.
+    </div>
+
   </aside>
 
+  <!-- CONTEÚDO PRINCIPAL -->
   <main class="main">
+
     <header class="topbar">
       <div>
-        <span class="eyebrow">SEU LABORATÓRIO DE IDEIAS</span>
-        <h1 id="pageTitle">Início</h1>
+        <div class="eyebrow">SEU LABORATÓRIO DE IDEIAS</div>
+        <h1 id="pageTitle">Visão geral</h1>
       </div>
+
       <div class="top-actions">
-        <button class="btn outline mobile-menu" id="mobileMenu" aria-label="Abrir menu"><i class="fa-solid fa-bars"></i></button>
-        <button class="btn primary" data-action="new-project"><i class="fa-solid fa-plus"></i> Novo projeto</button>
+        <button class="btn outline mobile-menu" id="mobileMenu" aria-label="Abrir menu">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+
+        <button class="btn primary" data-action="new-project">
+          <i class="fa-solid fa-plus"></i>
+          <span>Novo projeto</span>
+        </button>
       </div>
     </header>
 
-    <!-- INÍCIO -->
+    <!-- PÁGINA INICIAL -->
     <section class="page active" id="page-dashboard">
+
       <div class="welcome">
         <div>
-          <span class="eyebrow light">BEM-VINDA(O) À CLEBERLAB!</span>
-          <h2>Vamos tirar suas ideias do papel?</h2>
-          <p>Organize suas atividades, guarde fotos e acompanhe a evolução dos seus protótipos.</p>
-          <button class="btn light-btn" data-page="projects"><i class="fa-solid fa-rocket"></i> Ver meus projetos</button>
+          <div class="eyebrow" style="color:#c5beff">
+            BEM-VINDA(O) À CLEBERLAB
+          </div>
+
+          <h2>Suas ideias merecem sair do papel.</h2>
+
+          <p>
+            Organize projetos, acompanhe protótipos e registre cada descoberta.
+          </p>
         </div>
-        <i class="fa-solid fa-atom welcome-icon"></i>
+
+        <i class="fa-solid fa-atom orb"></i>
       </div>
 
+      <!-- GUIA PARA INICIANTES -->
+      <div class="quick-guide">
+
+        <div class="quick-guide-heading">
+          <div class="quick-guide-icon">
+            <i class="fa-solid fa-compass"></i>
+          </div>
+
+          <div>
+            <h2>Não sabe por onde começar?</h2>
+            <p>
+              Não se preocupe! Siga os passos abaixo para organizar seu projeto.
+            </p>
+          </div>
+        </div>
+
+        <div class="quick-guide-steps">
+
+          <div class="quick-guide-step">
+            <span class="quick-guide-number">1</span>
+
+            <div>
+              <h3>Crie seu projeto</h3>
+              <p>
+                Dê um nome à sua ideia e explique o que você pretende construir.
+              </p>
+
+              <button class="btn soft" data-action="new-project">
+                Criar meu projeto
+                <i class="fa-solid fa-arrow-right"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="quick-guide-step">
+            <span class="quick-guide-number">2</span>
+
+            <div>
+              <h3>Organize as tarefas</h3>
+              <p>
+                Anote o que precisa ser feito e marque as etapas concluídas.
+              </p>
+
+              <button class="btn soft" data-page="tasks">
+                Ver minhas tarefas
+                <i class="fa-solid fa-arrow-right"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="quick-guide-step">
+            <span class="quick-guide-number">3</span>
+
+            <div>
+              <h3>Registre os testes</h3>
+              <p>
+                Conte o que você testou, o que aconteceu e o que pode melhorar.
+              </p>
+
+              <button class="btn soft" data-page="tests">
+                Registrar um teste
+                <i class="fa-solid fa-arrow-right"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="quick-guide-step">
+            <span class="quick-guide-number">4</span>
+
+            <div>
+              <h3>Documente seu trabalho</h3>
+              <p>
+                Adicione fotos, anotações e informações sobre o desenvolvimento.
+              </p>
+
+              <button class="btn soft" data-page="notebook">
+                Abrir diário de bordo
+                <i class="fa-solid fa-arrow-right"></i>
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="quick-guide-footer">
+          <i class="fa-solid fa-lightbulb"></i>
+          <span>
+            <strong>Dica:</strong> você não precisa fazer tudo de uma vez.
+            Comece pelo primeiro passo e avance no seu ritmo.
+          </span>
+        </div>
+
+      </div>
+
+      <!-- RESUMO DO PROJETO -->
       <div class="stats">
-        <div class="stat"><span>Projetos ativos</span><i class="fa-solid fa-flask"></i><strong id="statActive">0</strong><small>Projetos em desenvolvimento</small></div>
-        <div class="stat"><span>Tarefas pendentes</span><i class="fa-solid fa-list-check"></i><strong id="statPending">0</strong><small>Atividades para fazer</small></div>
-        <div class="stat"><span>Tarefas concluídas</span><i class="fa-solid fa-check-circle"></i><strong id="statDone">0</strong><small>Atividades finalizadas</small></div>
-        <div class="stat"><span>Testes registrados</span><i class="fa-solid fa-vial"></i><strong id="statTests">0</strong><small>Experimentos anotados</small></div>
+
+        <div class="stat">
+          <div class="stat-top">Projetos ativos</div>
+          <strong id="statActive">0</strong>
+          <small>Projetos em desenvolvimento</small>
+        </div>
+
+        <div class="stat">
+          <div class="stat-top">Tarefas pendentes</div>
+          <strong id="statPending">0</strong>
+          <small>Etapas que ainda faltam</small>
+        </div>
+
+        <div class="stat">
+          <div class="stat-top">Tarefas concluídas</div>
+          <strong id="statDone">0</strong>
+          <small>Etapas finalizadas</small>
+        </div>
+
+        <div class="stat">
+          <div class="stat-top">Testes registrados</div>
+          <strong id="statTests">0</strong>
+          <small>Experimentos anotados</small>
+        </div>
+
       </div>
 
       <div class="section-head">
         <div>
-          <h2>Seus projetos</h2>
-          <p>Veja o que você está construindo.</p>
+          <h2>Projetos recentes</h2>
+          <p>Continue de onde você parou.</p>
         </div>
-        <button class="btn soft" data-page="projects">Ver todos <i class="fa-solid fa-arrow-right"></i></button>
-      </div>
-      <div class="project-grid" id="dashboardProjects"></div>
-      <div class="empty panel" id="dashboardEmpty" hidden>Você ainda não criou um projeto. Clique em “Novo projeto” para começar!</div>
 
-      <div class="tip">
-        <i class="fa-solid fa-lightbulb"></i>
-        <div><strong>Dica para começar</strong><p>Crie um projeto, adicione as tarefas e tire fotos do protótipo durante a construção. Assim você não perde nenhum detalhe!</p></div>
+        <button class="btn soft" data-page="projects">
+          Ver todos <i class="fa-solid fa-arrow-right"></i>
+        </button>
       </div>
+
+      <div class="project-grid" id="dashboardProjects"></div>
+
+      <div class="panel empty" id="dashboardEmpty" hidden>
+        <i class="fa-solid fa-folder-open"></i>
+        <h3>Seu espaço está pronto!</h3>
+        <p>
+          Você ainda não criou nenhum projeto. Clique em
+          <strong>Novo projeto</strong> para começar.
+        </p>
+        <button class="btn primary" data-action="new-project">
+          <i class="fa-solid fa-plus"></i> Criar meu primeiro projeto
+        </button>
+      </div>
+
     </section>
 
-    <!-- PROJETOS -->
+    <!-- MEUS PROJETOS -->
     <section class="page" id="page-projects">
+
       <div class="section-head">
-        <div><h2>Meus projetos</h2><p>Um projeto é uma ideia que você quer desenvolver.</p></div>
-        <button class="btn primary" data-action="new-project"><i class="fa-solid fa-plus"></i> Criar projeto</button>
+        <div>
+          <h2>Meus projetos</h2>
+          <p>
+            Aqui ficam suas ideias. Você pode criar, editar e acompanhar cada uma.
+          </p>
+        </div>
+
+        <div class="toolbar">
+          <input
+            class="search"
+            id="projectSearch"
+            placeholder="Digite o nome de um projeto..."
+            aria-label="Buscar projeto"
+          >
+
+          <button class="btn primary" data-action="new-project">
+            <i class="fa-solid fa-plus"></i> Criar projeto
+          </button>
+        </div>
       </div>
-      <div class="help-box"><i class="fa-solid fa-circle-info"></i> <span><b>Como funciona?</b> Crie um cartão para cada ideia. Você pode colocar uma foto, explicar o objetivo e acompanhar o progresso.</span></div>
-      <input class="search" id="projectSearch" placeholder="🔎 Digite o nome do projeto para procurar...">
+
+      <div class="tip-box">
+        <i class="fa-solid fa-circle-info"></i>
+        <strong>Como funciona?</strong>
+        Crie um projeto para guardar suas tarefas, materiais, testes, fotos e registros.
+      </div>
+
       <div class="project-grid" id="projectGrid"></div>
-      <div class="empty panel" id="emptyProjects" hidden>Nenhum projeto encontrado. Tente outro nome ou crie um novo projeto.</div>
+
+      <div class="panel empty" id="emptyProjects" hidden>
+        <i class="fa-solid fa-folder-open"></i>
+        <h3>Nenhum projeto encontrado</h3>
+        <p>
+          Tente buscar por outro nome ou crie um novo projeto.
+        </p>
+        <button class="btn primary" data-action="new-project">
+          <i class="fa-solid fa-plus"></i> Criar projeto
+        </button>
+      </div>
+
     </section>
 
     <!-- TAREFAS -->
     <section class="page" id="page-tasks">
+
       <div class="section-head">
-        <div><h2>Minhas tarefas</h2><p>Divida o projeto em pequenas atividades.</p></div>
-        <button class="btn primary" data-action="new-task"><i class="fa-solid fa-plus"></i> Adicionar tarefa</button>
+        <div>
+          <h2>Quadro de tarefas</h2>
+          <p>
+            Divida seu projeto em pequenas atividades para saber o que fazer.
+          </p>
+        </div>
+
+        <div class="toolbar">
+          <select id="taskProjectSelect" aria-label="Escolher projeto" style="min-width:190px"></select>
+
+          <button class="btn primary" data-action="new-task">
+            <i class="fa-solid fa-plus"></i> Nova tarefa
+          </button>
+        </div>
       </div>
-      <div class="help-box"><i class="fa-solid fa-circle-info"></i><span><b>Como funciona?</b> “A fazer” são as tarefas que ainda não começaram. “Em andamento” são as que você está fazendo. “Concluído” são as que já terminou. Use a seta para mudar de etapa.</span></div>
-      <div class="field compact-field"><label>Escolha o projeto que deseja ver</label><select id="taskProjectSelect"></select></div>
+
+      <div class="tip-box">
+        <i class="fa-solid fa-lightbulb"></i>
+        <strong>Entenda as etapas:</strong>
+        <br>
+        <strong>A fazer:</strong> você ainda não começou.
+        <br>
+        <strong>Em andamento:</strong> você está trabalhando nisso.
+        <br>
+        <strong>Concluído:</strong> você terminou a atividade.
+      </div>
+
       <div class="kanban" id="kanbanBoard"></div>
+
     </section>
 
-    <!-- MATERIAIS -->
+    <!-- MATERIAIS E CUSTOS -->
     <section class="page" id="page-materials">
-      <div class="section-head">
-        <div><h2>Materiais e custos</h2><p>Anote as peças e os materiais usados no projeto.</p></div>
-        <button class="btn primary" data-action="new-material"><i class="fa-solid fa-plus"></i> Adicionar material</button>
-      </div>
-      <div class="help-box"><i class="fa-solid fa-circle-info"></i><span><b>Como funciona?</b> Escreva o nome do material, a quantidade e o preço de cada unidade. O sistema calcula o custo total automaticamente.</span></div>
-      <div class="stats two-stats">
-        <div class="stat"><span>Quantidade de materiais</span><i class="fa-solid fa-box"></i><strong id="materialCount">0</strong></div>
-        <div class="stat"><span>Custo total</span><i class="fa-solid fa-coins"></i><strong id="materialTotal">R$ 0,00</strong></div>
-      </div>
-      <div class="field compact-field"><label>Escolha o projeto</label><select id="materialProjectSelect"></select></div>
-      <div class="panel table-wrap" id="materialsTable"></div>
-      <div class="empty panel" id="emptyMaterials" hidden>Você ainda não adicionou materiais para este projeto.</div>
-    </section>
 
-    <!-- TESTES -->
-    <section class="page" id="page-tests">
       <div class="section-head">
-        <div><h2>Testes e melhorias</h2><p>Registre os experimentos feitos com seu protótipo.</p></div>
-        <button class="btn primary" data-action="new-test"><i class="fa-solid fa-plus"></i> Registrar teste</button>
-      </div>
-      <div class="help-box"><i class="fa-solid fa-circle-info"></i><span><b>Como funciona?</b> Depois de testar seu protótipo, escreva o que aconteceu. Você pode incluir uma foto do teste, anotar problemas e explicar como pretende melhorar.</span></div>
-      <div class="field compact-field"><label>Escolha o projeto</label><select id="testProjectSelect"></select></div>
-      <div id="testList"></div>
-      <div class="empty panel" id="emptyTests" hidden>Nenhum teste registrado para este projeto.</div>
-    </section>
+        <div>
+          <h2>Materiais e orçamento</h2>
+          <p>
+            Registre o que você precisa comprar ou usar e quanto custa.
+          </p>
+        </div>
 
-    <!-- RELATÓRIO -->
-    <section class="page" id="page-technical">
-      <div class="section-head">
-        <div><h2>Relatório técnico</h2><p>Monte um documento explicando como seu projeto foi desenvolvido.</p></div>
-        <button class="btn primary" data-action="print-technical"><i class="fa-solid fa-file-pdf"></i> Imprimir / salvar PDF</button>
+        <button class="btn primary" data-action="new-material">
+          <i class="fa-solid fa-plus"></i> Adicionar material
+        </button>
       </div>
-      <div class="help-box"><i class="fa-solid fa-circle-info"></i><span><b>Como funciona?</b> Preencha os campos abaixo. Você pode adicionar fotos do protótipo. Depois, clique em “Atualizar relatório” para montar o documento e em “Imprimir / salvar PDF” para guardar ou entregar o trabalho.</span></div>
+
+      <div class="tip-box">
+        <i class="fa-solid fa-circle-info"></i>
+        <strong>Exemplo:</strong>
+        se você usar 3 sensores que custam R$ 15,00 cada, o custo total será
+        R$ 45,00. Cadastre a quantidade e o preço unitário para acompanhar os gastos.
+      </div>
+
+      <div class="stats">
+
+        <div class="stat">
+          <div class="stat-top">Itens cadastrados</div>
+          <strong id="materialCount">0</strong>
+          <small>Materiais registrados</small>
+        </div>
+
+        <div class="stat">
+          <div class="stat-top">Custo total estimado</div>
+          <strong id="materialTotal">R$ 0,00</strong>
+          <small>Soma dos materiais cadastrados</small>
+        </div>
+
+      </div>
 
       <div class="panel">
-        <div class="field"><label>Qual projeto vai entrar no relatório?</label><select id="technicalProjectSelect"></select></div>
-        <form id="technicalForm">
-          <div class="field"><label>Nome dos integrantes</label><input id="reportTeam" placeholder="Quem participou do projeto?"></div>
-          <div class="field"><label>Escola ou instituição</label><input id="reportInstitution" placeholder="Nome da escola"></div>
-          <div class="field"><label>1. Objetivo — O que vocês queriam criar ou resolver?</label><textarea id="reportObjective" placeholder="Explique o objetivo do projeto..."></textarea></div>
-          <div class="field"><label>2. Materiais e metodologia — O que vocês usaram e como fizeram?</label><textarea id="reportMethod" placeholder="Descreva os materiais, as etapas e como o protótipo foi montado..."></textarea></div>
-          <div class="field"><label>3. Resultados — O que aconteceu nos testes?</label><textarea id="reportResults" placeholder="O que funcionou? O que vocês descobriram?"></textarea></div>
-          <div class="field"><label>4. Problemas e melhorias — O que ainda precisa melhorar?</label><textarea id="reportLimits" placeholder="Anote as dificuldades e as próximas melhorias..."></textarea></div>
-          <div class="field">
-            <label>5. Fotos para o relatório</label>
-            <p class="field-help">Escolha fotos do protótipo, da montagem ou dos testes. Você pode selecionar mais de uma.</p>
-            <input id="reportImages" type="file" accept="image/*" multiple>
-            <div class="image-preview" id="reportImagePreview"></div>
-          </div>
-          <button class="btn primary" type="submit"><i class="fa-solid fa-file-circle-check"></i> Atualizar relatório</button>
-        </form>
+        <div class="muted" id="materialProjectLabel" style="margin-bottom:12px"></div>
+
+        <div class="table-wrap" id="materialsTable"></div>
+
+        <div class="empty" id="emptyMaterials" hidden>
+          <i class="fa-solid fa-box-open"></i>
+          <h3>Nenhum material cadastrado</h3>
+          <p>Adicione o primeiro material para começar seu orçamento.</p>
+        </div>
       </div>
 
-      <div class="section-head"><div><h2>Prévia do documento</h2><p>Confira como ficará o relatório.</p></div></div>
-      <article class="report-paper" id="technicalPreview"></article>
+    </section>
+
+    <!-- TESTES E MELHORIAS -->
+    <section class="page" id="page-tests">
+
+      <div class="section-head">
+        <div>
+          <h2>Testes e melhorias</h2>
+          <p>
+            Descubra se sua ideia funciona e registre o que pode ser melhorado.
+          </p>
+        </div>
+
+        <button class="btn primary" data-action="new-test">
+          <i class="fa-solid fa-plus"></i> Registrar teste
+        </button>
+      </div>
+
+      <div class="tip-box">
+        <i class="fa-solid fa-flask"></i>
+        <strong>O que escrever?</strong>
+        <br>
+        1. O que você queria testar?
+        <br>
+        2. O que aconteceu durante o teste?
+        <br>
+        3. O resultado foi o esperado?
+        <br>
+        4. O que você pretende melhorar?
+      </div>
+
+      <div class="panel">
+        <div class="toolbar" style="margin-bottom:15px">
+          <select id="testProjectSelect" style="max-width:320px" aria-label="Escolher projeto para ver os testes"></select>
+        </div>
+
+        <div id="testList"></div>
+
+        <div class="empty" id="emptyTests" hidden>
+          <i class="fa-solid fa-vial"></i>
+          <h3>Nenhum teste registrado</h3>
+          <p>
+            Quando você fizer um teste, registre aqui o que aconteceu.
+          </p>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- GERADOR DE IDEIAS -->
+    <section class="page" id="page-ideas">
+
+      <div class="section-head">
+        <div>
+          <h2>Gerador de ideias</h2>
+          <p>
+            Transforme o tema da aula em ideias para um projeto técnico.
+          </p>
+        </div>
+      </div>
+
+      <div class="idea-steps">
+
+        <div class="idea-step">
+          <span>1</span>
+          <div>
+            <b>Digite o tema da aula</b>
+            <p>Ex.: sustentabilidade, robótica, energia ou reciclagem.</p>
+          </div>
+        </div>
+
+        <div class="idea-step">
+          <span>2</span>
+          <div>
+            <b>Gere conexões e ideias</b>
+            <p>
+              O CleberLab combina o tema com problemas, soluções e tipos de projeto.
+            </p>
+          </div>
+        </div>
+
+        <div class="idea-step">
+          <span>3</span>
+          <div>
+            <b>Escolha uma ideia</b>
+            <p>
+              Selecione uma sugestão para criar um projeto dentro do CleberLab.
+            </p>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="panel idea-generator">
+
+        <form id="ideaForm">
+          <label for="ideaTopic">Qual é o tema da aula?</label>
+
+          <div class="idea-input-row">
+            <input
+              id="ideaTopic"
+              maxlength="100"
+              required
+              placeholder="Ex.: economia de água na escola"
+            >
+
+            <button class="btn primary" type="submit">
+              <i class="fa-solid fa-wand-magic-sparkles"></i> Gerar ideias
+            </button>
+          </div>
+
+          <small>
+            Dica: escreva o tema ou um problema que você gostaria de resolver.
+          </small>
+        </form>
+
+      </div>
+
+      <div id="ideaResults" class="idea-results" aria-live="polite"></div>
+      <div id="ideaChosen" class="idea-chosen" hidden></div>
+
+    </section>
+
+    <!-- RELATÓRIO TÉCNICO -->
+    <section class="page" id="page-technical">
+
+      <div class="section-head">
+        <div>
+          <h2>Relatório técnico</h2>
+          <p>
+            Organize as informações do projeto para apresentar seu trabalho.
+          </p>
+        </div>
+
+        <button class="btn primary" data-action="print-technical">
+          <i class="fa-solid fa-file-pdf"></i> Imprimir / salvar PDF
+        </button>
+      </div>
+
+      <div class="tip-box">
+        <i class="fa-solid fa-circle-info"></i>
+        <strong>Como usar:</strong>
+        preencha os campos do formulário. A prévia ao lado mostra como o relatório
+        está ficando. Para guardar em PDF, clique em
+        <strong>Imprimir / salvar PDF</strong> e escolha a opção de salvar como PDF.
+      </div>
+
+      <div class="detail-grid">
+
+        <div class="panel">
+
+          <form id="technicalForm">
+
+            <div class="field">
+              <label for="technicalProjectSelect">Qual projeto será apresentado?</label>
+              <select id="technicalProjectSelect"></select>
+            </div>
+
+            <div class="field">
+              <label for="reportTeam">Equipe / integrantes</label>
+              <input id="reportTeam" placeholder="Ex.: Ana, Pedro e Luiza">
+            </div>
+
+            <div class="field">
+              <label for="reportInstitution">Instituição</label>
+              <input id="reportInstitution" placeholder="Nome da escola ou instituição">
+            </div>
+
+            <div class="field">
+              <label for="reportObjective">Objetivo do projeto</label>
+              <p class="help-text">
+                Explique qual problema vocês querem resolver e o que pretendem alcançar.
+              </p>
+              <textarea id="reportObjective" placeholder="Ex.: Criar uma lixeira que ajude na separação dos resíduos."></textarea>
+            </div>
+
+            <div class="field">
+              <label for="reportMethod">Como o projeto foi desenvolvido?</label>
+              <p class="help-text">
+                Conte as etapas realizadas, os materiais usados e como vocês montaram a solução.
+              </p>
+              <textarea id="reportMethod" placeholder="Ex.: Primeiro pesquisamos o problema. Depois escolhemos os materiais e montamos o protótipo."></textarea>
+            </div>
+
+            <div class="field">
+              <label for="reportLimits">Limitações e próximos passos</label>
+              <p class="help-text">
+                Escreva o que ainda não funcionou bem e o que precisa ser melhorado.
+              </p>
+              <textarea id="reportLimits" placeholder="Ex.: Precisamos melhorar a precisão do sensor e testar em diferentes situações."></textarea>
+            </div>
+
+            <div class="field">
+              <label for="reportImages">Fotos para incluir no relatório</label>
+              <p class="help-text">
+                Escolha fotos do protótipo, da montagem ou dos testes.
+              </p>
+
+              <input id="reportImages" type="file" accept="image/*" multiple>
+              <div id="reportImagePreview" class="image-preview"></div>
+            </div>
+
+            <button class="btn primary" type="submit">
+              <i class="fa-solid fa-arrows-rotate"></i> Atualizar relatório
+            </button>
+
+          </form>
+
+        </div>
+
+        <div class="report-paper" id="technicalPreview"></div>
+
+      </div>
+
     </section>
 
     <!-- DIÁRIO DE BORDO -->
     <section class="page" id="page-notebook">
+
       <div class="section-head">
-        <div><h2>Diário de bordo</h2><p>Conte o que foi feito em cada dia do projeto.</p></div>
-        <button class="btn primary" data-action="print-notebook"><i class="fa-solid fa-print"></i> Imprimir diário</button>
+        <div>
+          <h2>Diário de bordo</h2>
+          <p>
+            Registre o que a equipe fez em cada dia do projeto.
+          </p>
+        </div>
+
+        <button class="btn primary" data-action="print-notebook">
+          <i class="fa-solid fa-print"></i> Imprimir diário
+        </button>
       </div>
-      <div class="help-box"><i class="fa-solid fa-circle-info"></i><span><b>Como funciona?</b> Pense no diário como um caderno. Cada registro é uma página: coloque a data, conte o que fez, adicione fotos e explique o que fará depois.</span></div>
+
+      <div class="tip-box">
+        <i class="fa-solid fa-book-open"></i>
+        <strong>Para que serve?</strong>
+        O diário de bordo é como um diário do projeto. Registre as atividades,
+        reuniões, pesquisas, testes, dificuldades e próximos passos. Você também
+        pode adicionar fotos para mostrar o desenvolvimento.
+      </div>
+
+      <div class="detail-grid">
+
+        <div class="panel">
+
+          <form id="notebookForm">
+
+            <div class="field-grid">
+
+              <div class="field">
+                <label for="notebookProjectSelect">Projeto</label>
+                <select id="notebookProjectSelect"></select>
+              </div>
+
+              <div class="field">
+                <label for="notebookDate">Data</label>
+                <input type="date" id="notebookDate" required>
+              </div>
+
+              <div class="field">
+                <label for="notebookType">Tipo de registro</label>
+                <select id="notebookType">
+                  <option>Atividade</option>
+                  <option>Reunião</option>
+                  <option>Teste</option>
+                  <option>Melhoria</option>
+                  <option>Pesquisa</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label for="notebookAuthor">Responsável</label>
+                <input id="notebookAuthor" placeholder="Nome do integrante">
+              </div>
+
+              <div class="field full">
+                <label for="notebookTitle">Título do registro</label>
+                <input
+                  id="notebookTitle"
+                  required
+                  placeholder="Ex.: Primeiro teste do protótipo"
+                >
+              </div>
+
+              <div class="field full">
+                <label for="notebookDescription">O que aconteceu neste dia?</label>
+                <p class="help-text">
+                  Conte o que foi feito, o que deu certo e quais dificuldades apareceram.
+                </p>
+                <textarea
+                  id="notebookDescription"
+                  required
+                  placeholder="Ex.: Montamos o circuito e testamos o sensor. Ele funcionou, mas precisamos ajustar a distância."
+                ></textarea>
+              </div>
+
+              <div class="field full">
+                <label for="notebookNext">O que será feito depois?</label>
+                <textarea
+                  id="notebookNext"
+                  placeholder="Ex.: Ajustar o sensor e realizar um novo teste."
+                ></textarea>
+              </div>
+
+              <div class="field full">
+                <label for="notebookPhotos">Adicionar fotos deste dia</label>
+                <p class="help-text">
+                  Você pode colocar fotos da montagem, da reunião ou dos testes.
+                </p>
+                <input id="notebookPhotos" type="file" accept="image/*" multiple>
+                <div id="notebookPhotoPreview" class="image-preview"></div>
+              </div>
+
+            </div>
+
+            <button class="btn primary" type="submit">
+              <i class="fa-solid fa-bookmark"></i> Salvar registro
+            </button>
+
+          </form>
+
+        </div>
+
+        <div class="panel">
+
+          <h3 style="font-family:Poppins;margin-top:0">Registros salvos</h3>
+
+          <p class="help-text">
+            Os registros que você salvar aparecerão aqui para consulta.
+          </p>
+
+          <div id="notebookList"></div>
+
+          <div class="empty" id="emptyNotebook" hidden>
+            <i class="fa-solid fa-book-open"></i>
+            <h3>Seu diário está vazio</h3>
+            <p>Salve seu primeiro registro usando o formulário ao lado.</p>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- COMPARAÇÃO DE PROTÓTIPOS -->
+    <section class="page" id="page-compare">
+
+      <div class="section-head">
+        <div>
+          <h2>Comparador de protótipos</h2>
+          <p>
+            Compare duas versões e descubra as diferenças entre elas.
+          </p>
+        </div>
+
+        <button class="btn soft" data-action="reset-compare">
+          <i class="fa-solid fa-rotate-left"></i> Limpar comparação
+        </button>
+      </div>
+
+      <div class="tip-box">
+        <i class="fa-solid fa-code-compare"></i>
+        <strong>Como funciona?</strong>
+        Preencha os dados das duas versões e clique em
+        <strong>Comparar versões</strong>.
+        O custo mostra quanto cada versão custa. Precisão e resistência são
+        valores em porcentagem: quanto maior o valor, maior o resultado indicado
+        naquela característica.
+      </div>
+
+      <div class="detail-grid">
+
+        <form class="panel" id="compareFormA">
+
+          <h3 style="font-family:Poppins">Versão A</h3>
+          <p class="help-text">Preencha os dados da primeira versão do protótipo.</p>
+
+          <div class="field">
+            <label for="versionAName">Nome da versão</label>
+            <input id="versionAName" value="Protótipo A" required>
+          </div>
+
+          <div class="field">
+            <label for="versionACost">Custo (R$)</label>
+            <input id="versionACost" type="number" min="0" step="0.01" value="100">
+          </div>
+
+          <div class="field">
+            <label for="versionAAccuracy">Precisão (%)</label>
+            <input id="versionAAccuracy" type="number" min="0" max="100" value="70">
+          </div>
+
+          <div class="field">
+            <label for="versionAResistance">Resistência (%)</label>
+            <input id="versionAResistance" type="number" min="0" max="100" value="75">
+          </div>
+
+          <div class="field">
+            <label for="versionANotes">Observações</label>
+            <textarea id="versionANotes" placeholder="Descreva os pontos positivos e as dificuldades desta versão."></textarea>
+          </div>
+
+        </form>
+
+        <form class="panel" id="compareFormB">
+
+          <h3 style="font-family:Poppins">Versão B</h3>
+          <p class="help-text">Preencha os dados da segunda versão do protótipo.</p>
+
+          <div class="field">
+            <label for="versionBName">Nome da versão</label>
+            <input id="versionBName" value="Protótipo B" required>
+          </div>
+
+          <div class="field">
+            <label for="versionBCost">Custo (R$)</label>
+            <input id="versionBCost" type="number" min="0" step="0.01" value="120">
+          </div>
+
+          <div class="field">
+            <label for="versionBAccuracy">Precisão (%)</label>
+            <input id="versionBAccuracy" type="number" min="0" max="100" value="85">
+          </div>
+
+          <div class="field">
+            <label for="versionBResistance">Resistência (%)</label>
+            <input id="versionBResistance" type="number" min="0" max="100" value="80">
+          </div>
+
+          <div class="field">
+            <label for="versionBNotes">Observações</label>
+            <textarea id="versionBNotes" placeholder="Descreva os pontos positivos e as dificuldades desta versão."></textarea>
+          </div>
+
+        </form>
+
+      </div>
 
       <div class="panel">
-        <form id="notebookForm">
-          <div class="field"><label>Projeto</label><select id="notebookProjectSelect" required></select></div>
-          <div class="field-grid">
-            <div class="field"><label>Data</label><input type="date" id="notebookDate" required></div>
-            <div class="field"><label>Tipo de registro</label><select id="notebookType"><option>Atividade</option><option>Reunião</option><option>Pesquisa</option><option>Teste</option><option>Melhoria</option></select></div>
+
+        <div class="toolbar" style="justify-content:space-between;margin-bottom:10px">
+          <div>
+            <h3 style="font-family:Poppins;margin-bottom:5px">Resultado da comparação</h3>
+            <p class="help-text">
+              O resultado aparecerá abaixo depois que você comparar as versões.
+            </p>
           </div>
-          <div class="field"><label>Título do registro</label><input id="notebookTitle" required placeholder="Ex.: Montagem da primeira versão"></div>
-          <div class="field"><label>Quem fez essa atividade?</label><input id="notebookAuthor" placeholder="Nome do integrante"></div>
-          <div class="field"><label>O que foi feito hoje?</label><textarea id="notebookDescription" required placeholder="Conte com suas palavras o que aconteceu..."></textarea></div>
-          <div class="field"><label>O que será feito depois?</label><textarea id="notebookNext" placeholder="Quais são os próximos passos?"></textarea></div>
-          <div class="field">
-            <label>Fotos desse dia</label>
-            <p class="field-help">Adicione fotos da montagem, das reuniões ou dos testes.</p>
-            <input type="file" id="notebookImages" accept="image/*" multiple>
-            <div class="image-preview" id="notebookImagePreview"></div>
-          </div>
-          <button class="btn primary" type="submit"><i class="fa-solid fa-bookmark"></i> Salvar página no diário</button>
-        </form>
+
+          <button class="btn primary" data-action="compare">
+            <i class="fa-solid fa-code-compare"></i> Comparar versões
+          </button>
+        </div>
+
+        <div id="comparisonTable" class="table-wrap"></div>
+        <p id="comparisonConclusion" class="muted"></p>
+
       </div>
 
-      <div class="section-head"><div><h2>Meu diário</h2><p>Todos os registros salvos aparecerão aqui.</p></div></div>
-      <div id="notebookList"></div>
-      <div class="empty panel" id="emptyNotebook" hidden>Seu diário ainda está vazio. Preencha o formulário acima para adicionar a primeira página.</div>
     </section>
 
-    <!-- COMPARADOR -->
-    <section class="page" id="page-compare">
-      <div class="section-head">
-        <div><h2>Comparar protótipos</h2><p>Descubra o que mudou entre duas versões.</p></div>
-      </div>
-      <div class="help-box"><i class="fa-solid fa-circle-info"></i><span><b>Como funciona?</b> Se você fez duas versões do protótipo, coloque os dados de cada uma. O sistema compara o custo, a precisão e a resistência. Use resultados reais dos seus testes.</span></div>
-
-      <div class="compare-grid">
-        <div class="panel">
-          <h3>Versão A — primeira versão</h3>
-          <div class="field"><label>Nome</label><input id="versionAName" value="Versão A"></div>
-          <div class="field"><label>Custo total (R$)</label><input id="versionACost" type="number" min="0" step="0.01" value="100"></div>
-          <div class="field"><label>Precisão (%)</label><input id="versionAAccuracy" type="number" min="0" max="100" value="70"></div>
-          <div class="field"><label>Resistência (%)</label><input id="versionAResistance" type="number" min="0" max="100" value="75"></div>
-          <div class="field"><label>Foto da versão A</label><input id="versionAImage" type="file" accept="image/*"><div class="image-preview" id="versionAImagePreview"></div></div>
-        </div>
-        <div class="panel">
-          <h3>Versão B — versão melhorada</h3>
-          <div class="field"><label>Nome</label><input id="versionBName" value="Versão B"></div>
-          <div class="field"><label>Custo total (R$)</label><input id="versionBCost" type="number" min="0" step="0.01" value="120"></div>
-          <div class="field"><label>Precisão (%)</label><input id="versionBAccuracy" type="number" min="0" max="100" value="85"></div>
-          <div class="field"><label>Resistência (%)</label><input id="versionBResistance" type="number" min="0" max="100" value="80"></div>
-          <div class="field"><label>Foto da versão B</label><input id="versionBImage" type="file" accept="image/*"><div class="image-preview" id="versionBImagePreview"></div></div>
-        </div>
-      </div>
-      <button class="btn primary" data-action="compare"><i class="fa-solid fa-code-compare"></i> Comparar as duas versões</button>
-      <div class="panel compare-result" id="comparisonResult" hidden></div>
-    </section>
   </main>
 </div>
 
-<!-- Janela para adicionar e editar informações -->
+<!-- JANELA PARA CADASTRAR E EDITAR -->
 <div class="modal-backdrop" id="modalBackdrop">
+
   <div class="modal">
+
     <div class="modal-head">
-      <h2 id="modalTitle">Adicionar</h2>
-      <button class="icon-btn" id="modalClose" type="button" aria-label="Fechar"><i class="fa-solid fa-xmark"></i></button>
+      <h2 id="modalTitle">Novo item</h2>
+
+      <button class="icon-btn" id="modalClose" type="button" aria-label="Fechar janela">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
     </div>
+
     <form id="modalForm">
+
       <div id="modalFields"></div>
+
       <div class="modal-foot">
-        <button type="button" class="btn outline" id="modalCancel">Cancelar</button>
-        <button type="submit" class="btn primary">Salvar</button>
+        <button type="button" class="btn outline" id="modalCancel">
+          Cancelar
+        </button>
+
+        <button class="btn primary" type="submit">
+          <i class="fa-solid fa-check"></i> Salvar
+        </button>
       </div>
+
     </form>
+
   </div>
+
 </div>
 
-<div class="toast" id="toast" role="status"></div>
+<!-- MENSAGENS DE CONFIRMAÇÃO -->
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
 <script src="script.js"></script>
 </body>
 </html>

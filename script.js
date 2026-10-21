@@ -1,1223 +1,1814 @@
-const $ = selector => document.querySelector(selector);
-const $$ = selector => [...document.querySelectorAll(selector)];
 
-const money = value => (Number(value) || 0).toLocaleString('pt-BR', {
-  style: 'currency',
-  currency: 'BRL'
-});
+/* ==========================================
+   CLEBERLAB — SISTEMA DE GESTÃO DE PROJETOS
+   Versão com mensagens e orientações simples
+========================================== */
 
-const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-const today = () => new Date().toLocaleDateString('en-CA');
+'use strict';
 
-const initialData = {
-  projects: [],
-  tasks: [],
-  materials: [],
-  tests: [],
-  entries: [],
-  reports: {}
-};
+const $ = (seletor) => document.querySelector(seletor);
+const $$ = (seletor) => [...document.querySelectorAll(seletor)];
 
-let data;
+const STORAGE_KEY = 'cleberlab_data_v2';
 
-try {
-  data = JSON.parse(localStorage.getItem('cleberlab_data_v2')) || initialData;
-} catch {
-  data = JSON.parse(JSON.stringify(initialData));
-}
+const money = (valor) =>
+  (Number(valor) || 0).toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
+  });
 
-let modalSave = null;
-let reportImages = [];
-let notebookImages = [];
-let compareImageA = '';
-let compareImageB = '';
+const uid = () =>
+  `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
-function escapeHTML(value = '') {
-  return String(value).replace(/[&<>"']/g, char => ({
+const escapeHTML = (valor = '') =>
+  String(valor).replace(/[&<>"']/g, caractere => ({
     '&': '&amp;',
     '<': '&lt;',
     '>': '&gt;',
     '"': '&quot;',
     "'": '&#39;'
-  }[char]));
+  })[caractere]);
+
+const texto = valor => String(valor ?? '').trim();
+
+const dataHoje = () => {
+  const data = new Date();
+  const ano = data.getFullYear();
+  const mes = String(data.getMonth() + 1).padStart(2, '0');
+  const dia = String(data.getDate()).padStart(2, '0');
+  return `${ano}-${mes}-${dia}`;
+};
+
+const dataBonita = valor => {
+  if (!valor) return 'Data não informada';
+
+  const partes = String(valor).split('-');
+
+  if (partes.length !== 3) return escapeHTML(valor);
+
+  return `${partes[2]}/${partes[1]}/${partes[0]}`;
+};
+
+const imagemPadrao = '';
+
+// ==========================================
+// 1. DADOS E SALVAMENTO
+// ==========================================
+
+function dadosVazios() {
+  return {
+    projects: [],
+    tasks: [],
+    materials: [],
+    tests: [],
+    notebook: [],
+    reports: {},
+    compare: null
+  };
 }
 
-function toast(message) {
-  const element = $('#toast');
-  element.textContent = message;
-  element.classList.add('show');
-
-  clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => element.classList.remove('show'), 3000);
-}
-
-function save() {
+function carregarDados() {
   try {
-    localStorage.setItem('cleberlab_data_v2', JSON.stringify(data));
-    refresh();
-  } catch (error) {
-    toast('O armazenamento está cheio. Remova algumas fotos e tente novamente.');
-  }
-}
+    const guardados = localStorage.getItem(STORAGE_KEY);
 
-function findProject(id) {
-  return data.projects.find(project => project.id === id);
-}
+    if (!guardados) return dadosVazios();
 
-function projectTasks(id) {
-  return data.tasks.filter(task => task.project === id);
-}
+    const dados = JSON.parse(guardados);
+    const padrao = dadosVazios();
 
-function progress(id) {
-  const tasks = projectTasks(id);
-
-  if (!tasks.length) return 0;
-
-  return Math.round(
-    tasks.filter(task => task.status === 'done').length / tasks.length * 100
-  );
-}
-
-function statusBadge(status) {
-  const className = status === 'Concluído'
-    ? 'green'
-    : status === 'Em andamento'
-      ? 'orange'
-      : '';
-
-  return `<span class="tag ${className}">${escapeHTML(status)}</span>`;
-}
-
-function projectOptions(selected = '') {
-  return data.projects.map(project => `
-    <option value="${project.id}" ${project.id === selected ? 'selected' : ''}>
-      ${escapeHTML(project.name)}
-    </option>
-  `).join('');
-}
-
-function fillProjectSelect(selector) {
-  const element = $(selector);
-  if (!element) return;
-
-  const oldValue = element.value;
-
-  element.innerHTML = data.projects.length
-    ? projectOptions()
-    : '<option value="">Crie um projeto primeiro</option>';
-
-  if (data.projects.some(project => project.id === oldValue)) {
-    element.value = oldValue;
-  } else if (data.projects.length) {
-    element.value = data.projects[0].id;
-  }
-}
-
-/* =========================
-   PROJETOS
-========================= */
-
-function projectCard(project) {
-  return `
-    <article class="project-card">
-      ${project.image
-        ? `<img class="project-image" src="${project.image}" alt="Foto de ${escapeHTML(project.name)}">`
-        : `<div class="project-image-placeholder"><i class="fa-solid fa-flask"></i></div>`
-      }
-
-      <div class="project-content">
-        ${statusBadge(project.status)}
-        <h3>${escapeHTML(project.name)}</h3>
-        <p>${escapeHTML(project.description || 'Ainda não foi adicionada uma descrição.')}</p>
-
-        <div class="project-progress">
-          <span style="width:${progress(project.id)}%"></span>
-        </div>
-
-        <div class="project-meta">
-          <span>${progress(project.id)}% concluído</span>
-          <span>${projectTasks(project.id).length} tarefas</span>
-        </div>
-
-        <div class="project-actions">
-          <button class="btn soft" data-edit-project="${project.id}">
-            <i class="fa-solid fa-pen"></i> Editar
-          </button>
-
-          <button class="btn outline" data-project-tasks="${project.id}">
-            <i class="fa-solid fa-list-check"></i> Tarefas
-          </button>
-
-          <button class="btn danger" data-delete-project="${project.id}" aria-label="Excluir projeto">
-            <i class="fa-solid fa-trash"></i>
-          </button>
-        </div>
-      </div>
-    </article>
-  `;
-}
-
-function renderProjects() {
-  const query = ($('#projectSearch').value || '').toLowerCase();
-
-  const projects = data.projects.filter(project =>
-    project.name.toLowerCase().includes(query)
-  );
-
-  $('#projectGrid').innerHTML = projects.map(projectCard).join('');
-  $('#emptyProjects').hidden = projects.length > 0;
-
-  $('#dashboardProjects').innerHTML =
-    data.projects.slice(0, 3).map(projectCard).join('');
-
-  $('#dashboardEmpty').hidden = data.projects.length > 0;
-}
-
-function newProject(existing = null) {
-  openModal(existing ? 'Editar projeto' : 'Criar um projeto', `
-    <p class="field-help">Dê um nome à sua ideia e explique o que você quer construir.</p>
-
-    <div class="field">
-      <label>Nome do projeto *</label>
-      <input name="name" required maxlength="100"
-        value="${escapeHTML(existing?.name || '')}"
-        placeholder="Ex.: Lixeira inteligente">
-    </div>
-
-    <div class="field">
-      <label>O que é esse projeto?</label>
-      <textarea name="description"
-        placeholder="Explique a ideia com suas palavras...">${escapeHTML(existing?.description || '')}</textarea>
-    </div>
-
-    <div class="field">
-      <label>Qual problema ele pretende resolver?</label>
-      <textarea name="goal"
-        placeholder="Ex.: Facilitar o descarte de lixo.">${escapeHTML(existing?.goal || '')}</textarea>
-    </div>
-
-    <div class="field">
-      <label>Em qual etapa ele está?</label>
-      <select name="status">
-        ${['Planejamento', 'Em andamento', 'Concluído'].map(status => `
-          <option ${existing?.status === status ? 'selected' : ''}>${status}</option>
-        `).join('')}
-      </select>
-    </div>
-
-    <div class="field">
-      <label>Foto do projeto ou protótipo</label>
-      <p class="field-help">Escolha uma imagem do computador. A foto aparecerá no cartão do projeto.</p>
-      <input name="imageFile" type="file" accept="image/*" id="projectImageFile">
-      <div class="image-preview" id="projectImagePreview">
-        ${existing?.image ? `<div class="preview-item"><img src="${existing.image}" alt="Foto atual"></div>` : ''}
-      </div>
-      <button type="button" class="btn outline" id="removeProjectImage">
-        <i class="fa-solid fa-trash"></i> Remover foto
-      </button>
-    </div>
-  `, async values => {
-    const file = $('#projectImageFile')?.files[0];
-    let image = existing?.image || '';
-
-    if (window.removeProjectImage) image = '';
-    else if (file) image = await compressImage(file);
-
-    const record = {
-      id: existing?.id || uid(),
-      name: values.name.trim(),
-      description: values.description.trim(),
-      goal: values.goal.trim(),
-      status: values.status,
-      image,
-      created: existing?.created || today()
+    return {
+      ...padrao,
+      ...dados,
+      projects: Array.isArray(dados.projects) ? dados.projects : [],
+      tasks: Array.isArray(dados.tasks) ? dados.tasks : [],
+      materials: Array.isArray(dados.materials) ? dados.materials : [],
+      tests: Array.isArray(dados.tests) ? dados.tests : [],
+      notebook: Array.isArray(dados.notebook) ? dados.notebook : [],
+      reports: dados.reports && typeof dados.reports === 'object'
+        ? dados.reports
+        : {}
     };
-
-    if (existing) {
-      Object.assign(existing, record);
-    } else {
-      data.projects.unshift(record);
-    }
-
-    save();
-    toast('Projeto salvo com sucesso!');
-  });
-
-  window.removeProjectImage = false;
-
-  $('#projectImageFile').addEventListener('change', async event => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    try {
-      const image = await compressImage(file);
-      $('#projectImagePreview').innerHTML = `
-        <div class="preview-item"><img src="${image}" alt="Prévia da foto"></div>
-      `;
-      window.pendingProjectImage = image;
-    } catch {
-      toast('Não foi possível abrir essa imagem.');
-    }
-  });
-
-  $('#removeProjectImage').addEventListener('click', () => {
-    window.removeProjectImage = true;
-    window.pendingProjectImage = '';
-    $('#projectImageFile').value = '';
-    $('#projectImagePreview').innerHTML = '<span class="field-help">Nenhuma foto selecionada.</span>';
-  });
+  } catch (erro) {
+    console.error('Não foi possível ler os dados salvos:', erro);
+    return dadosVazios();
+  }
 }
 
-/* =========================
-   TAREFAS
-========================= */
+let db = carregarDados();
+let modalTipo = '';
+let itemEditando = null;
+let projetoAtual = '';
+let toastTimeout;
 
-function renderTasks() {
-  fillProjectSelect('#taskProjectSelect');
+function salvar() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+    return true;
+  } catch (erro) {
+    console.error('Não foi possível salvar:', erro);
 
-  const projectId = $('#taskProjectSelect').value;
-
-  const columns = [
-    ['todo', 'A fazer', 'Ainda não começou'],
-    ['doing', 'Em andamento', 'Você está trabalhando nisso'],
-    ['done', 'Concluído', 'Tarefa finalizada']
-  ];
-
-  $('#kanbanBoard').innerHTML = columns.map(([status, title, description]) => {
-    const tasks = data.tasks.filter(task =>
-      task.project === projectId && task.status === status
+    toast(
+      'Não foi possível salvar os dados. O navegador pode estar sem espaço. Tente usar imagens menores.',
+      'error'
     );
 
-    return `
-      <div class="kanban-col">
-        <div class="kanban-head">
-          <div>${title}<div class="field-help">${description}</div></div>
-          <span>${tasks.length}</span>
-        </div>
-
-        ${tasks.map(task => `
-          <div class="task">
-            <div class="task-title">${escapeHTML(task.title)}</div>
-            <small>Responsável: ${escapeHTML(task.assignee || 'Não informado')}</small>
-
-            <div class="task-actions">
-              <button data-toggle-task="${task.id}" title="Mudar etapa">
-                <i class="fa-solid fa-arrow-right"></i>
-              </button>
-              <button data-edit-task="${task.id}" title="Editar tarefa">
-                <i class="fa-solid fa-pen"></i>
-              </button>
-              <button data-delete-task="${task.id}" title="Excluir tarefa">
-                <i class="fa-solid fa-trash"></i>
-              </button>
-            </div>
-          </div>
-        `).join('') || '<p class="field-help">Nenhuma tarefa nesta etapa.</p>'}
-      </div>
-    `;
-  }).join('');
+    return false;
+  }
 }
 
-function newTask(existing = null) {
-  if (!data.projects.length) {
-    toast('Primeiro, crie um projeto.');
+// ==========================================
+// 2. AVISOS SIMPLES
+// ==========================================
+
+function toast(mensagem, tipo = 'success') {
+  const elemento = $('#toast');
+
+  if (!elemento) return;
+
+  clearTimeout(toastTimeout);
+
+  elemento.textContent = mensagem;
+  elemento.className = `toast show ${tipo}`;
+
+  toastTimeout = setTimeout(() => {
+    elemento.className = 'toast';
+  }, 3800);
+}
+
+function confirmar(mensagem) {
+  return window.confirm(mensagem);
+}
+
+function pedirTexto(mensagem, valorAtual = '') {
+  const resposta = window.prompt(mensagem, valorAtual);
+
+  if (resposta === null) return null;
+
+  return texto(resposta);
+}
+
+// ==========================================
+// 3. PROJETOS
+// ==========================================
+
+function obterProjeto(id) {
+  return db.projects.find(projeto => projeto.id === id);
+}
+
+function nomeProjeto(id) {
+  return obterProjeto(id)?.name || 'Projeto não encontrado';
+}
+
+function progressoProjeto(id) {
+  const tarefas = db.tasks.filter(tarefa => tarefa.projectId === id);
+
+  if (!tarefas.length) return 0;
+
+  const concluidas = tarefas.filter(
+    tarefa => tarefa.status === 'done'
+  ).length;
+
+  return Math.round((concluidas / tarefas.length) * 100);
+}
+
+function abrirModal(tipo, itemId = null) {
+  modalTipo = tipo;
+  itemEditando = itemId;
+
+  const modal = $('#modalBackdrop');
+  const titulo = $('#modalTitle');
+  const campos = $('#modalFields');
+
+  if (!modal || !titulo || !campos) return;
+
+  const item = itemId ? obterItem(tipo, itemId) : null;
+
+  const configuracoes = {
+    project: {
+      novo: 'Criar um projeto',
+      editar: 'Editar projeto',
+      campos: `
+        <div class="field">
+          <label for="modalName">Nome do projeto *</label>
+          <input id="modalName" maxlength="100" required
+            placeholder="Ex.: Lixeira inteligente">
+          <small class="help-text">
+            Escolha um nome curto para identificar sua ideia.
+          </small>
+        </div>
+
+        <div class="field">
+          <label for="modalDescription">O que você pretende construir?</label>
+          <textarea id="modalDescription" maxlength="1500"
+            placeholder="Explique o problema e como pretende resolvê-lo."></textarea>
+        </div>
+
+        <div class="field">
+          <label for="modalCategory">Categoria</label>
+          <select id="modalCategory">
+            <option>Tecnologia</option>
+            <option>Robótica</option>
+            <option>Sustentabilidade</option>
+            <option>Automação</option>
+            <option>Ciências</option>
+            <option>Outro</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="modalStatus">Situação</label>
+          <select id="modalStatus">
+            <option value="active">Em desenvolvimento</option>
+            <option value="paused">Pausado</option>
+            <option value="done">Concluído</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="modalImage">Foto do projeto (opcional)</label>
+          <input id="modalImage" type="file" accept="image/*">
+          <small class="help-text">
+            Você pode escolher uma foto do protótipo ou um desenho da ideia.
+          </small>
+          <div id="modalImagePreview" class="image-preview"></div>
+        </div>
+      `
+    },
+
+    task: {
+      novo: 'Adicionar uma tarefa',
+      editar: 'Editar tarefa',
+      campos: `
+        <div class="field">
+          <label for="modalProject">A qual projeto pertence?</label>
+          <select id="modalProject" required></select>
+        </div>
+
+        <div class="field">
+          <label for="modalName">O que precisa ser feito? *</label>
+          <input id="modalName" required maxlength="120"
+            placeholder="Ex.: Montar o circuito elétrico">
+        </div>
+
+        <div class="field">
+          <label for="modalDescription">Detalhes (opcional)</label>
+          <textarea id="modalDescription"
+            placeholder="Descreva o que precisa ser feito."></textarea>
+        </div>
+
+        <div class="field">
+          <label for="modalStatus">Em que etapa está?</label>
+          <select id="modalStatus">
+            <option value="todo">A fazer</option>
+            <option value="doing">Em andamento</option>
+            <option value="done">Concluída</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="modalDue">Prazo (opcional)</label>
+          <input id="modalDue" type="date">
+        </div>
+      `
+    },
+
+    material: {
+      novo: 'Adicionar um material',
+      editar: 'Editar material',
+      campos: `
+        <div class="field">
+          <label for="modalProject">Projeto</label>
+          <select id="modalProject" required></select>
+        </div>
+
+        <div class="field">
+          <label for="modalName">Nome do material *</label>
+          <input id="modalName" required maxlength="120"
+            placeholder="Ex.: Sensor ultrassônico">
+        </div>
+
+        <div class="field">
+          <label for="modalQuantity">Quantidade *</label>
+          <input id="modalQuantity" type="number" min="1" step="1"
+            value="1" required>
+        </div>
+
+        <div class="field">
+          <label for="modalPrice">Preço por unidade (R$) *</label>
+          <input id="modalPrice" type="number" min="0" step="0.01"
+            value="0" required>
+        </div>
+
+        <small class="help-text">
+          O custo total é calculado automaticamente: quantidade × preço unitário.
+        </small>
+      `
+    },
+
+    test: {
+      novo: 'Registrar um teste',
+      editar: 'Editar teste',
+      campos: `
+        <div class="field">
+          <label for="modalProject">Projeto</label>
+          <select id="modalProject" required></select>
+        </div>
+
+        <div class="field">
+          <label for="modalName">O que você testou? *</label>
+          <input id="modalName" required maxlength="120"
+            placeholder="Ex.: Funcionamento do sensor">
+        </div>
+
+        <div class="field">
+          <label for="modalDescription">O que você fez?</label>
+          <textarea id="modalDescription"
+            placeholder="Conte como o teste foi realizado."></textarea>
+        </div>
+
+        <div class="field">
+          <label for="modalResult">Qual foi o resultado?</label>
+          <textarea id="modalResult"
+            placeholder="Conte o que aconteceu e se funcionou como esperado."></textarea>
+        </div>
+
+        <div class="field">
+          <label for="modalImprovement">O que pode melhorar?</label>
+          <textarea id="modalImprovement"
+            placeholder="Registre o que precisa ser ajustado."></textarea>
+        </div>
+
+        <div class="field">
+          <label for="modalImage">Foto do teste (opcional)</label>
+          <input id="modalImage" type="file" accept="image/*">
+          <div id="modalImagePreview" class="image-preview"></div>
+        </div>
+      `
+    }
+  };
+
+  const config = configuracoes[tipo];
+
+  if (!config) return;
+
+  titulo.textContent = item
+    ? config.editar
+    : config.novo;
+
+  campos.innerHTML = config.campos;
+  modal.classList.add('show');
+  modal.setAttribute('aria-hidden', 'false');
+
+  preencherSelectProjetos('#modalProject');
+
+  if (item) preencherCamposModal(tipo, item);
+
+  prepararImagemModal(item);
+
+  setTimeout(() => {
+    const primeiro = campos.querySelector('input:not([type="file"]), select, textarea');
+    primeiro?.focus();
+  }, 50);
+}
+
+function obterItem(tipo, id) {
+  const colecoes = {
+    project: db.projects,
+    task: db.tasks,
+    material: db.materials,
+    test: db.tests
+  };
+
+  return colecoes[tipo]?.find(item => item.id === id) || null;
+}
+
+function preencherCamposModal(tipo, item) {
+  const colocar = (id, valor) => {
+    const campo = $(`#${id}`);
+
+    if (campo && valor !== undefined && valor !== null) {
+      campo.value = valor;
+    }
+  };
+
+  colocar('modalName', item.name);
+  colocar('modalDescription', item.description);
+  colocar('modalCategory', item.category);
+  colocar('modalStatus', item.status);
+  colocar('modalProject', item.projectId);
+  colocar('modalDue', item.due);
+  colocar('modalQuantity', item.quantity);
+  colocar('modalPrice', item.price);
+  colocar('modalResult', item.result);
+  colocar('modalImprovement', item.improvement);
+}
+
+function fecharModal() {
+  const modal = $('#modalBackdrop');
+
+  if (!modal) return;
+
+  modal.classList.remove('show');
+  modal.setAttribute('aria-hidden', 'true');
+
+  $('#modalForm')?.reset();
+
+  modalTipo = '';
+  itemEditando = null;
+}
+
+function prepararImagemModal(item) {
+  const input = $('#modalImage');
+  const preview = $('#modalImagePreview');
+
+  if (!input || !preview) return;
+
+  preview.innerHTML = '';
+
+  if (item?.image) {
+    preview.innerHTML = `<img src="${item.image}" alt="Imagem atual" class="saved-image">`;
+  }
+
+  input.addEventListener('change', async () => {
+    preview.innerHTML = '';
+
+    const arquivo = input.files?.[0];
+
+    if (!arquivo) return;
+
+    try {
+      const imagem = await comprimirImagem(arquivo);
+      preview.innerHTML = `<img src="${imagem}" alt="Prévia da imagem">`;
+    } catch {
+      toast('Não foi possível abrir essa imagem. Tente outro arquivo.', 'error');
+    }
+  });
+}
+
+async function comprimirImagem(arquivo) {
+  if (!arquivo.type.startsWith('image/')) {
+    throw new Error('O arquivo escolhido não é uma imagem.');
+  }
+
+  if (arquivo.size > 12 * 1024 * 1024) {
+    throw new Error('A imagem precisa ter menos de 12 MB.');
+  }
+
+  const original = await new Promise((resolve, reject) => {
+    const leitor = new FileReader();
+
+    leitor.onload = () => resolve(leitor.result);
+    leitor.onerror = () => reject(new Error('Erro ao ler a imagem.'));
+    leitor.readAsDataURL(arquivo);
+  });
+
+  const imagem = await new Promise((resolve, reject) => {
+    const elemento = new Image();
+
+    elemento.onload = () => resolve(elemento);
+    elemento.onerror = () => reject(new Error('Imagem inválida.'));
+    elemento.src = original;
+  });
+
+  const limite = 1000;
+  const escala = Math.min(1, limite / Math.max(imagem.width, imagem.height));
+
+  const canvas = document.createElement('canvas');
+
+  canvas.width = Math.max(1, Math.round(imagem.width * escala));
+  canvas.height = Math.max(1, Math.round(imagem.height * escala));
+
+  const contexto = canvas.getContext('2d');
+
+  contexto.drawImage(imagem, 0, 0, canvas.width, canvas.height);
+
+  return canvas.toDataURL('image/jpeg', 0.75);
+}
+
+async function salvarItemModal(evento) {
+  evento.preventDefault();
+
+  if (!modalTipo) return;
+
+  const tipo = modalTipo;
+  const id = itemEditando;
+  const itemAntigo = id ? obterItem(tipo, id) : null;
+
+  const valor = campo => texto($(`#${campo}`)?.value);
+
+  const nome = valor('modalName');
+
+  if (!nome) {
+    toast('Digite um nome antes de salvar.', 'error');
+    $('#modalName')?.focus();
     return;
   }
 
-  openModal(existing ? 'Editar tarefa' : 'Adicionar uma tarefa', `
-    <p class="field-help">Escreva uma atividade pequena e clara que precisa ser feita.</p>
+  if (['task', 'material', 'test'].includes(tipo) && !db.projects.length) {
+    toast('Primeiro crie um projeto para adicionar esse item.', 'error');
+    fecharModal();
+    abrirModal('project');
+    return;
+  }
 
-    <div class="field">
-      <label>Projeto</label>
-      <select name="project">${projectOptions(existing?.project || $('#taskProjectSelect').value)}</select>
-    </div>
+  const item = {
+    ...(itemAntigo || {}),
+    id: itemAntigo?.id || uid(),
+    updatedAt: new Date().toISOString()
+  };
 
-    <div class="field">
-      <label>O que precisa ser feito? *</label>
-      <input name="title" required value="${escapeHTML(existing?.title || '')}"
-        placeholder="Ex.: Montar o circuito">
-    </div>
+  if (tipo === 'project') {
+    item.name = nome;
+    item.description = valor('modalDescription');
+    item.category = valor('modalCategory') || 'Tecnologia';
+    item.status = valor('modalStatus') || 'active';
+    item.createdAt = itemAntigo?.createdAt || new Date().toISOString();
+  }
 
-    <div class="field">
-      <label>Quem vai fazer?</label>
-      <input name="assignee" value="${escapeHTML(existing?.assignee || '')}"
-        placeholder="Nome do integrante">
-    </div>
+  if (tipo === 'task') {
+    item.name = nome;
+    item.description = valor('modalDescription');
+    item.projectId = valor('modalProject');
+    item.status = valor('modalStatus') || 'todo';
+    item.due = valor('modalDue');
 
-    <div class="field">
-      <label>Qual é a etapa?</label>
-      <select name="status">
-        <option value="todo" ${existing?.status === 'todo' ? 'selected' : ''}>A fazer</option>
-        <option value="doing" ${existing?.status === 'doing' ? 'selected' : ''}>Em andamento</option>
-        <option value="done" ${existing?.status === 'done' ? 'selected' : ''}>Concluído</option>
-      </select>
-    </div>
-  `, values => {
-    if (existing) Object.assign(existing, values);
-    else data.tasks.push({ id: uid(), ...values });
+    if (!obterProjeto(item.projectId)) {
+      toast('Escolha um projeto válido.', 'error');
+      return;
+    }
+  }
 
-    save();
-    toast('Tarefa salva!');
-  });
-}
+  if (tipo === 'material') {
+    item.name = nome;
+    item.projectId = valor('modalProject');
+    item.quantity = Number($('#modalQuantity')?.value);
+    item.price = Number($('#modalPrice')?.value);
 
-/* =========================
-   MATERIAIS
-========================= */
-
-function renderMaterials() {
-  fillProjectSelect('#materialProjectSelect');
-
-  const id = $('#materialProjectSelect').value;
-  const materials = data.materials.filter(material => material.project === id);
-
-  $('#materialCount').textContent = materials.length;
-  $('#materialTotal').textContent = money(
-    materials.reduce((sum, material) => sum + material.quantity * material.price, 0)
-  );
-
-  $('#materialsTable').innerHTML = materials.length ? `
-    <table>
-      <thead><tr>
-        <th>Material</th><th>Quantidade</th><th>Preço unitário</th>
-        <th>Total</th><th>Ações</th>
-      </tr></thead>
-      <tbody>
-        ${materials.map(material => `
-          <tr>
-            <td>${escapeHTML(material.name)}</td>
-            <td>${material.quantity}</td>
-            <td>${money(material.price)}</td>
-            <td>${money(material.quantity * material.price)}</td>
-            <td class="table-actions">
-              <button data-edit-material="${material.id}" aria-label="Editar"><i class="fa-solid fa-pen"></i></button>
-              <button data-delete-material="${material.id}" aria-label="Excluir"><i class="fa-solid fa-trash"></i></button>
-            </td>
-          </tr>
-        `).join('')}
-      </tbody>
-    </table>
-  ` : '';
-
-  $('#emptyMaterials').hidden = materials.length > 0;
-}
-
-function newMaterial(existing = null) {
-  if (!data.projects.length) return toast('Primeiro, crie um projeto.');
-
-  openModal(existing ? 'Editar material' : 'Adicionar material', `
-    <div class="field">
-      <label>Em qual projeto esse material será usado?</label>
-      <select name="project">${projectOptions(existing?.project || $('#materialProjectSelect').value)}</select>
-    </div>
-
-    <div class="field">
-      <label>Nome do material *</label>
-      <input name="name" required value="${escapeHTML(existing?.name || '')}"
-        placeholder="Ex.: Sensor ultrassônico">
-    </div>
-
-    <div class="field">
-      <label>Quantidade de unidades</label>
-      <input name="quantity" type="number" min="1" required value="${existing?.quantity || 1}">
-    </div>
-
-    <div class="field">
-      <label>Preço de uma unidade (R$)</label>
-      <input name="price" type="number" min="0" step="0.01" required value="${existing?.price ?? 0}">
-    </div>
-  `, values => {
-    values.quantity = Number(values.quantity);
-    values.price = Number(values.price);
-
-    if (existing) Object.assign(existing, values);
-    else data.materials.push({ id: uid(), ...values });
-
-    save();
-    toast('Material salvo!');
-  });
-}
-
-/* =========================
-   IMAGENS
-========================= */
-
-// Reduz as imagens antes de guardar para economizar espaço.
-function compressImage(file) {
-  return new Promise((resolve, reject) => {
-    if (!file.type.startsWith('image/')) {
-      reject(new Error('Arquivo não é uma imagem.'));
+    if (!Number.isInteger(item.quantity) || item.quantity < 1) {
+      toast('A quantidade deve ser pelo menos 1.', 'error');
       return;
     }
 
-    const reader = new FileReader();
-
-    reader.onerror = () => reject(new Error('Erro ao ler imagem.'));
-
-    reader.onload = () => {
-      const img = new Image();
-
-      img.onerror = () => reject(new Error('Imagem inválida.'));
-
-      img.onload = () => {
-        const maxSize = 1000;
-        const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
-
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.max(1, Math.round(img.width * scale));
-        canvas.height = Math.max(1, Math.round(img.height * scale));
-
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-        resolve(canvas.toDataURL('image/jpeg', 0.72));
-      };
-
-      img.src = reader.result;
-    };
-
-    reader.readAsDataURL(file);
-  });
-}
-
-async function readImages(files) {
-  const selected = [...files];
-
-  if (selected.length > 8) {
-    toast('Selecione no máximo 8 fotos por vez.');
-    selected.length = 8;
-  }
-
-  const images = [];
-
-  for (const file of selected) {
-    try {
-      images.push(await compressImage(file));
-    } catch {
-      toast(`Não foi possível carregar ${file.name}.`);
+    if (!Number.isFinite(item.price) || item.price < 0) {
+      toast('Digite um preço válido.', 'error');
+      return;
     }
   }
 
-  return images;
+  if (tipo === 'test') {
+    item.name = nome;
+    item.projectId = valor('modalProject');
+    item.description = valor('modalDescription');
+    item.result = valor('modalResult');
+    item.improvement = valor('modalImprovement');
+    item.date = itemAntigo?.date || dataHoje();
+  }
+
+  const arquivoImagem = $('#modalImage')?.files?.[0];
+
+  if (arquivoImagem) {
+    try {
+      item.image = await comprimirImagem(arquivoImagem);
+    } catch (erro) {
+      toast(erro.message || 'Não foi possível processar a imagem.', 'error');
+      return;
+    }
+  }
+
+  if (!item.image && itemAntigo?.image) {
+    item.image = itemAntigo.image;
+  }
+
+  const colecoes = {
+    project: 'projects',
+    task: 'tasks',
+    material: 'materials',
+    test: 'tests'
+  };
+
+  const colecao = db[colecoes[tipo]];
+
+  if (itemAntigo) {
+    const indice = colecao.findIndex(registro => registro.id === id);
+    colecao[indice] = item;
+  } else {
+    colecao.push(item);
+  }
+
+  if (tipo === 'project' && !projetoAtual) {
+    projetoAtual = item.id;
+  }
+
+  if (!salvar()) return;
+
+  fecharModal();
+  renderizarTudo();
+
+  const nomes = {
+    project: 'Projeto',
+    task: 'Tarefa',
+    material: 'Material',
+    test: 'Teste'
+  };
+
+  toast(
+    `${nomes[tipo]} ${itemAntigo ? 'atualizado' : 'salvo'} com sucesso!`
+  );
 }
 
-function previewImages(selector, images, removeCallback) {
-  const container = $(selector);
+// ==========================================
+// 4. EXCLUIR ITENS
+// ==========================================
 
-  container.innerHTML = images.map((image, index) => `
-    <div class="preview-item">
-      <img src="${image}" alt="Prévia da imagem ${index + 1}">
-      <button type="button" data-remove-image="${index}" aria-label="Remover foto">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
-    </div>
-  `).join('');
+function excluirItem(tipo, id) {
+  const item = obterItem(tipo, id);
 
-  container.querySelectorAll('[data-remove-image]').forEach(button => {
-    button.addEventListener('click', () => {
-      removeCallback(Number(button.dataset.removeImage));
-    });
-  });
-}
+  if (!item) return;
 
-function savedImages(images = []) {
-  if (!images.length) return '';
+  const nomes = {
+    project: 'projeto',
+    task: 'tarefa',
+    material: 'material',
+    test: 'teste'
+  };
 
-  return `
-    <div class="saved-images">
-      ${images.map((image, index) => `
-        <img src="${image}" alt="Foto do registro ${index + 1}">
-      `).join('')}
-    </div>
-  `;
-}
-
-function previewSingleImage(selector, image) {
-  $(selector).innerHTML = image
-    ? `<div class="preview-item"><img src="${image}" alt="Prévia do protótipo"></div>`
-    : '';
-}
-
-/* =========================
-   TESTES
-========================= */
-
-function renderTests() {
-  fillProjectSelect('#testProjectSelect');
-
-  const id = $('#testProjectSelect').value;
-  const tests = data.tests.filter(test => test.project === id);
-
-  $('#testList').innerHTML = tests.map(test => `
-    <article class="entry">
-      <div class="entry-meta">${escapeHTML(test.date)} · ${escapeHTML(test.result)}</div>
-      <h3>${escapeHTML(test.title)}</h3>
-      <p>${escapeHTML(test.description)}</p>
-      ${savedImages(test.images)}
-      <div class="entry-actions">
-        <button class="btn danger" data-delete-test="${test.id}">
-          <i class="fa-solid fa-trash"></i> Excluir teste
-        </button>
-      </div>
-    </article>
-  `).join('');
-
-  $('#emptyTests').hidden = tests.length > 0;
-}
-
-function newTest() {
-  if (!data.projects.length) return toast('Primeiro, crie um projeto.');
-
-  openModal('Registrar um teste', `
-    <p class="field-help">Conte o que você testou e o que aconteceu.</p>
-
-    <div class="field">
-      <label>Projeto</label>
-      <select name="project">${projectOptions($('#testProjectSelect').value)}</select>
-    </div>
-
-    <div class="field">
-      <label>Nome do teste *</label>
-      <input name="title" required placeholder="Ex.: Teste do sensor">
-    </div>
-
-    <div class="field">
-      <label>Data</label>
-      <input name="date" type="date" value="${today()}" required>
-    </div>
-
-    <div class="field">
-      <label>Resultado</label>
-      <select name="result">
-        <option>Funcionou</option>
-        <option>Funcionou parcialmente</option>
-        <option>Não funcionou</option>
-        <option>Precisa de novos testes</option>
-      </select>
-    </div>
-
-    <div class="field">
-      <label>O que aconteceu?</label>
-      <textarea name="description" required placeholder="Explique o resultado e o que pode melhorar..."></textarea>
-    </div>
-
-    <div class="field">
-      <label>Fotos do teste</label>
-      <input type="file" id="testImageFiles" accept="image/*" multiple>
-      <div class="image-preview" id="testImagePreview"></div>
-    </div>
-  `, async values => {
-    const images = await readImages($('#testImageFiles').files);
-
-    data.tests.unshift({
-      id: uid(),
-      ...values,
-      images
-    });
-
-    save();
-    toast('Teste registrado!');
-  });
-
-  $('#testImageFiles').addEventListener('change', async event => {
-    const images = await readImages(event.target.files);
-    previewImages('#testImagePreview', images, index => {
-      images.splice(index, 1);
-      previewImages('#testImagePreview', images, () => {});
-    });
-    window.testImagesDraft = images;
-  });
-}
-
-/* =========================
-   RELATÓRIO TÉCNICO
-========================= */
-
-function reportData() {
-  const id = $('#technicalProjectSelect').value;
-
-  if (!data.reports[id]) data.reports[id] = { images: [] };
-
-  return data.reports[id];
-}
-
-function renderTechnical() {
-  fillProjectSelect('#technicalProjectSelect');
-
-  const id = $('#technicalProjectSelect').value;
-  const p = findProject(id);
-
-  if (!p) {
-    $('#technicalPreview').innerHTML = '<p>Crie um projeto antes de montar seu relatório.</p>';
+  if (!confirmar(`Tem certeza de que deseja excluir este ${nomes[tipo]}? Essa ação não pode ser desfeita.`)) {
     return;
   }
 
-  const r = data.reports[id] || { images: [] };
+  if (tipo === 'project') {
+    db.projects = db.projects.filter(p => p.id !== id);
+    db.tasks = db.tasks.filter(p => p.projectId !== id);
+    db.materials = db.materials.filter(p => p.projectId !== id);
+    db.tests = db.tests.filter(p => p.projectId !== id);
+    db.notebook = db.notebook.filter(p => p.projectId !== id);
+    delete db.reports[id];
 
-  $('#reportTeam').value = r.team || '';
-  $('#reportInstitution').value = r.institution || '';
-  $('#reportObjective').value = r.objective || p.goal || '';
-  $('#reportMethod').value = r.method || '';
-  $('#reportResults').value = r.results || '';
-  $('#reportLimits').value = r.limits || '';
-
-  reportImages = [...(r.images || [])];
-  previewImages('#reportImagePreview', reportImages, index => {
-    reportImages.splice(index, 1);
-    previewImages('#reportImagePreview', reportImages, removeImage);
-  });
-
-  makeReportPreview();
-}
-
-function makeReportPreview() {
-  const id = $('#technicalProjectSelect').value;
-  const p = findProject(id);
-
-  if (!p) return;
-
-  const r = data.reports[id] || {};
-  const materials = data.materials.filter(m => m.project === id);
-  const tests = data.tests.filter(t => t.project === id);
-  const tasks = projectTasks(id);
-
-  $('#technicalPreview').innerHTML = `
-    <img class="report-logo" src="logo-cleberlab.jpg" alt="CleberLab">
-    <h2>RELATÓRIO TÉCNICO</h2>
-    <p style="text-align:center">CleberLab — Desenvolvimento de projetos e protótipos</p>
-    <hr>
-
-    <h3>Identificação do projeto</h3>
-    <p><b>Nome:</b> ${escapeHTML(p.name)}</p>
-    <p><b>Equipe:</b> ${escapeHTML(r.team || 'Não informado')}</p>
-    <p><b>Instituição:</b> ${escapeHTML(r.institution || 'Não informada')}</p>
-
-    <h3>1. Objetivo</h3>
-    <p>${escapeHTML(r.objective || 'Preencha o objetivo no formulário acima.')}</p>
-
-    <h3>2. Materiais e metodologia</h3>
-    <p>${escapeHTML(r.method || 'Descreva os materiais utilizados e como o projeto foi desenvolvido.')}</p>
-
-    <p><b>Materiais cadastrados:</b></p>
-    <ul>
-      ${materials.map(m => `
-        <li>${escapeHTML(m.name)} — ${m.quantity} unidade(s) — ${money(m.price * m.quantity)}</li>
-      `).join('') || '<li>Nenhum material cadastrado.</li>'}
-    </ul>
-
-    <p><b>Custo estimado:</b> ${money(materials.reduce((sum, m) => sum + m.price * m.quantity, 0))}</p>
-
-    <h3>3. Resultados</h3>
-    <p>${escapeHTML(r.results || 'Descreva os resultados obtidos.')}</p>
-    <p><b>Tarefas concluídas:</b> ${tasks.filter(t => t.status === 'done').length} de ${tasks.length} (${progress(id)}%).</p>
-
-    ${tests.map(test => `
-      <p><b>${escapeHTML(test.title)}:</b> ${escapeHTML(test.result)}. ${escapeHTML(test.description)}</p>
-      ${savedImages(test.images)}
-    `).join('')}
-
-    <h3>4. Fotos do projeto</h3>
-    ${savedImages(r.images || []) || '<p>Nenhuma foto foi adicionada ao relatório.</p>'}
-
-    <h3>5. Problemas e melhorias</h3>
-    <p>${escapeHTML(r.limits || 'Descreva as dificuldades encontradas e o que pode ser melhorado.')}</p>
-
-    <hr>
-    <p class="report-caption">Documento organizado com o sistema CleberLab.</p>
-  `;
-}
-
-function removeImage(index) {
-  reportImages.splice(index, 1);
-  previewImages('#reportImagePreview', reportImages, removeImage);
-}
-
-$('#reportImages').addEventListener('change', async event => {
-  const images = await readImages(event.target.files);
-  reportImages = reportImages.concat(images).slice(0, 8);
-  previewImages('#reportImagePreview', reportImages, removeImage);
-  event.target.value = '';
-});
-
-$('#technicalProjectSelect').addEventListener('change', renderTechnical);
-
-$('#technicalForm').addEventListener('submit', event => {
-  event.preventDefault();
-
-  const id = $('#technicalProjectSelect').value;
-  if (!id) return toast('Crie um projeto primeiro.');
-
-  data.reports[id] = {
-    team: $('#reportTeam').value,
-    institution: $('#reportInstitution').value,
-    objective: $('#reportObjective').value,
-    method: $('#reportMethod').value,
-    results: $('#reportResults').value,
-    limits: $('#reportLimits').value,
-    images: [...reportImages]
-  };
-
-  save();
-  makeReportPreview();
-  toast('Relatório atualizado!');
-});
-
-/* =========================
-   DIÁRIO DE BORDO
-========================= */
-
-function renderNotebook() {
-  fillProjectSelect('#notebookProjectSelect');
-
-  const id = $('#notebookProjectSelect').value;
-
-  const entries = data.entries
-    .filter(entry => entry.project === id)
-    .sort((a, b) => b.date.localeCompare(a.date));
-
-  $('#notebookList').innerHTML = entries.map(entry => `
-    <article class="entry">
-      <div class="entry-meta">${escapeHTML(entry.date)} · ${escapeHTML(entry.type)}</div>
-      <h3>${escapeHTML(entry.title)}</h3>
-      <p><b>Responsável:</b> ${escapeHTML(entry.author || 'Não informado')}</p>
-      <p><b>O que foi feito:</b>\n${escapeHTML(entry.description)}</p>
-      ${entry.next ? `<p><b>Próximos passos:</b>\n${escapeHTML(entry.next)}</p>` : ''}
-      ${savedImages(entry.images)}
-      <div class="entry-actions">
-        <button class="btn danger" data-delete-entry="${entry.id}">
-          <i class="fa-solid fa-trash"></i> Excluir registro
-        </button>
-      </div>
-    </article>
-  `).join('');
-
-  $('#emptyNotebook').hidden = entries.length > 0;
-}
-
-$('#notebookDate').value = today();
-
-$('#notebookImages').addEventListener('change', async event => {
-  const images = await readImages(event.target.files);
-  notebookImages = notebookImages.concat(images).slice(0, 8);
-
-  previewImages('#notebookImagePreview', notebookImages, index => {
-    notebookImages.splice(index, 1);
-    previewImages('#notebookImagePreview', notebookImages, removeNotebookImage);
-  });
-
-  event.target.value = '';
-});
-
-function removeNotebookImage(index) {
-  notebookImages.splice(index, 1);
-  previewImages('#notebookImagePreview', notebookImages, removeNotebookImage);
-}
-
-$('#notebookForm').addEventListener('submit', event => {
-  event.preventDefault();
-
-  const projectId = $('#notebookProjectSelect').value;
-
-  if (!projectId) return toast('Crie um projeto primeiro.');
-
-  data.entries.unshift({
-    id: uid(),
-    project: projectId,
-    date: $('#notebookDate').value,
-    type: $('#notebookType').value,
-    title: $('#notebookTitle').value.trim(),
-    author: $('#notebookAuthor').value.trim(),
-    description: $('#notebookDescription').value.trim(),
-    next: $('#notebookNext').value.trim(),
-    images: [...notebookImages]
-  });
-
-  notebookImages = [];
-  $('#notebookImagePreview').innerHTML = '';
-
-  save();
-
-  event.target.reset();
-  $('#notebookDate').value = today();
-
-  toast('Página salva no diário de bordo!');
-});
-
-/* =========================
-   COMPARAÇÃO DE PROTÓTIPOS
-========================= */
-
-$('#versionAImage').addEventListener('change', async event => {
-  const file = event.target.files[0];
-  if (!file) return;
-
-  try {
-    compareImageA = await compressImage(file);
-    previewSingleImage('#versionAImagePreview', compareImageA);
-  } catch {
-    toast('Não foi possível carregar a foto.');
+    if (projetoAtual === id) {
+      projetoAtual = db.projects[0]?.id || '';
+    }
   }
-});
 
-$('#versionBImage').addEventListener('change', async event => {
-  const file = event.target.files[0];
-  if (!file) return;
-
-  try {
-    compareImageB = await compressImage(file);
-    previewSingleImage('#versionBImagePreview', compareImageB);
-  } catch {
-    toast('Não foi possível carregar a foto.');
+  if (tipo === 'task') {
+    db.tasks = db.tasks.filter(p => p.id !== id);
   }
-});
 
-function comparePrototypes() {
-  const a = {
-    name: $('#versionAName').value || 'Versão A',
-    cost: Number($('#versionACost').value) || 0,
-    accuracy: Number($('#versionAAccuracy').value) || 0,
-    resistance: Number($('#versionAResistance').value) || 0
-  };
-
-  const b = {
-    name: $('#versionBName').value || 'Versão B',
-    cost: Number($('#versionBCost').value) || 0,
-    accuracy: Number($('#versionBAccuracy').value) || 0,
-    resistance: Number($('#versionBResistance').value) || 0
-  };
-
-  const rows = [
-    ['Custo', money(a.cost), money(b.cost), a.cost === b.cost ? 'Empate' : a.cost < b.cost ? a.name : b.name],
-    ['Precisão', `${a.accuracy}%`, `${b.accuracy}%`, a.accuracy === b.accuracy ? 'Empate' : a.accuracy > b.accuracy ? a.name : b.name],
-    ['Resistência', `${a.resistance}%`, `${b.resistance}%`, a.resistance === b.resistance ? 'Empate' : a.resistance > b.resistance ? a.name : b.name]
-  ];
-
-  const scoreA = a.accuracy + a.resistance;
-  const scoreB = b.accuracy + b.resistance;
-
-  $('#comparisonResult').hidden = false;
-
-  $('#comparisonResult').innerHTML = `
-    <h3>Resultado da comparação</h3>
-    <p class="field-help">O menor custo é melhor. Para precisão e resistência, o valor mais alto é melhor.</p>
-
-    <div class="saved-images">
-      <div>
-        ${compareImageA ? `<img src="${compareImageA}" alt="Versão A">` : '<p>Versão A sem foto.</p>'}
-        <p><b>${escapeHTML(a.name)}</b></p>
-      </div>
-      <div>
-        ${compareImageB ? `<img src="${compareImageB}" alt="Versão B">` : '<p>Versão B sem foto.</p>'}
-        <p><b>${escapeHTML(b.name)}</b></p>
-      </div>
-    </div>
-
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Critério</th><th>Versão A</th><th>Versão B</th><th>Melhor neste critério</th></tr></thead>
-        <tbody>
-          ${rows.map(row => `
-            <tr>${row.map(value => `<td>${escapeHTML(value)}</td>`).join('')}</tr>
-          `).join('')}
-        </tbody>
-      </table>
-    </div>
-
-    <p><b>Conclusão:</b> ${scoreA === scoreB
-      ? 'As duas versões têm a mesma soma de precisão e resistência.'
-      : `A ${escapeHTML(scoreA > scoreB ? a.name : b.name)} tem a maior soma de precisão e resistência.`}
-    </p>
-
-    <p class="field-help">Essa soma é apenas uma comparação simples. Considere também o custo, a segurança e os resultados reais dos testes antes de escolher uma versão.</p>
-
-    <button class="btn primary" data-action="print-compare">
-      <i class="fa-solid fa-print"></i> Imprimir comparação
-    </button>
-  `;
-}
-
-/* =========================
-   JANELA DE CADASTRO
-========================= */
-
-function openModal(title, fields, onSave) {
-  $('#modalTitle').textContent = title;
-  $('#modalFields').innerHTML = fields;
-  modalSave = onSave;
-  $('#modalBackdrop').classList.add('show');
-}
-
-function closeModal() {
-  $('#modalBackdrop').classList.remove('show');
-  $('#modalForm').reset();
-  $('#modalFields').innerHTML = '';
-  modalSave = null;
-  window.removeProjectImage = false;
-  window.pendingProjectImage = '';
-}
-
-$('#modalClose').addEventListener('click', closeModal);
-$('#modalCancel').addEventListener('click', closeModal);
-
-$('#modalBackdrop').addEventListener('click', event => {
-  if (event.target.id === 'modalBackdrop') closeModal();
-});
-
-$('#modalForm').addEventListener('submit', async event => {
-  event.preventDefault();
-
-  if (!modalSave) return;
-
-  const values = Object.fromEntries(new FormData(event.target).entries());
-
-  try {
-    await modalSave(values);
-    closeModal();
-  } catch (error) {
-    console.error(error);
-    toast('Não foi possível salvar. Verifique os campos e as fotos.');
+  if (tipo === 'material') {
+    db.materials = db.materials.filter(p => p.id !== id);
   }
-});
 
-/* =========================
-   NAVEGAÇÃO
-========================= */
+  if (tipo === 'test') {
+    db.tests = db.tests.filter(p => p.id !== id);
+  }
 
-const pageTitles = {
-  dashboard: 'Início',
+  if (salvar()) {
+    renderizarTudo();
+    toast(`${nomes[tipo]} excluído.`);
+  }
+}
+
+// ==========================================
+// 5. NAVEGAÇÃO ENTRE PÁGINAS
+// ==========================================
+
+const titulosPaginas = {
+  dashboard: 'Visão geral',
   projects: 'Meus projetos',
-  tasks: 'Minhas tarefas',
+  tasks: 'Tarefas',
   materials: 'Materiais e custos',
   tests: 'Testes e melhorias',
+  ideas: 'Gerador de ideias',
   technical: 'Relatório técnico',
   notebook: 'Diário de bordo',
   compare: 'Comparar protótipos'
 };
 
-function go(page) {
-  $$('.page').forEach(section => {
-    section.classList.toggle('active', section.id === `page-${page}`);
+function navegar(pagina) {
+  if (!titulosPaginas[pagina]) return;
+
+  $$('.page').forEach(secao => {
+    secao.classList.toggle('active', secao.id === `page-${pagina}`);
   });
 
-  $$('.nav-link').forEach(button => {
-    button.classList.toggle('active', button.dataset.page === page);
+  $$('.nav-link[data-page]').forEach(botao => {
+    botao.classList.toggle('active', botao.dataset.page === pagina);
   });
 
-  $('#pageTitle').textContent = pageTitles[page] || 'CleberLab';
-  $('#sidebar').classList.remove('open');
+  const titulo = $('#pageTitle');
 
-  if (page === 'technical') renderTechnical();
-  if (page === 'notebook') renderNotebook();
+  if (titulo) titulo.textContent = titulosPaginas[pagina];
+
+  $('#sidebar')?.classList.remove('open');
+
+  if (pagina === 'technical') renderizarRelatorio();
+  if (pagina === 'notebook') renderizarDiario();
+  if (pagina === 'compare') carregarComparacao();
 }
 
-$$('.nav-link').forEach(button => {
-  button.addEventListener('click', () => go(button.dataset.page));
-});
+// ==========================================
+// 6. LISTAS DE PROJETOS NOS FORMULÁRIOS
+// ==========================================
 
-$('#mobileMenu').addEventListener('click', () => {
-  $('#sidebar').classList.toggle('open');
-});
+function preencherSelectProjetos(seletor, selecionarId = '') {
+  const campo = $(seletor);
 
-$('#projectSearch').addEventListener('input', renderProjects);
-$('#taskProjectSelect').addEventListener('change', renderTasks);
-$('#materialProjectSelect').addEventListener('change', renderMaterials);
-$('#testProjectSelect').addEventListener('change', renderTests);
-$('#notebookProjectSelect').addEventListener('change', renderNotebook);
+  if (!campo) return;
 
-$('#technicalProjectSelect').addEventListener('change', () => {
-  reportImages = [];
-  renderTechnical();
-});
+  const selecionado = selecionarId || campo.value || projetoAtual;
 
-/* =========================
-   BOTÕES E AÇÕES
-========================= */
-
-document.addEventListener('click', event => {
-  const pageButton = event.target.closest('[data-page]');
-
-  if (pageButton && !pageButton.classList.contains('nav-link')) {
-    go(pageButton.dataset.page);
+  if (!db.projects.length) {
+    campo.innerHTML = '<option value="">Crie um projeto primeiro</option>';
+    campo.disabled = true;
     return;
   }
 
-  const actionButton = event.target.closest('[data-action]');
-  const action = actionButton?.dataset.action;
+  campo.disabled = false;
 
-  if (action === 'new-project') return newProject();
-  if (action === 'new-task') return newTask();
-  if (action === 'new-material') return newMaterial();
-  if (action === 'new-test') return newTest();
-  if (action === 'compare') return comparePrototypes();
+  campo.innerHTML = db.projects.map(projeto => `
+    <option value="${escapeHTML(projeto.id)}">
+      ${escapeHTML(projeto.name)}
+    </option>
+  `).join('');
 
-  if (action === 'print-technical') {
-    makeReportPreview();
-    printPage('technical');
+  if (db.projects.some(projeto => projeto.id === selecionado)) {
+    campo.value = selecionado;
+  } else {
+    campo.value = db.projects[0].id;
+  }
+}
+
+function atualizarSelects() {
+  [
+    '#taskProjectSelect',
+    '#testProjectSelect',
+    '#technicalProjectSelect',
+    '#notebookProjectSelect'
+  ].forEach(seletor => {
+    preencherSelectProjetos(seletor);
+  });
+}
+
+// ==========================================
+// 7. MOSTRAR PROJETOS
+// ==========================================
+
+function renderizarProjetos() {
+  const pesquisa = texto($('#projectSearch')?.value).toLowerCase();
+
+  const projetos = db.projects.filter(projeto =>
+    `${projeto.name} ${projeto.description} ${projeto.category}`
+      .toLowerCase()
+      .includes(pesquisa)
+  );
+
+  const html = projetos.map(projeto => {
+    const progresso = progressoProjeto(projeto.id);
+    const tarefas = db.tasks.filter(t => t.projectId === projeto.id).length;
+    const statusTexto = {
+      active: 'Em desenvolvimento',
+      paused: 'Pausado',
+      done: 'Concluído'
+    }[projeto.status] || 'Em desenvolvimento';
+
+    return `
+      <article class="project-card">
+        <div class="project-top">
+          <div class="project-symbol">
+            <i class="fa-solid fa-flask"></i>
+          </div>
+          <span class="tag ${projeto.status === 'done' ? 'green' : ''}">
+            ${escapeHTML(statusTexto)}
+          </span>
+        </div>
+
+        ${projeto.image ? `
+          <img class="project-photo"
+            src="${projeto.image}"
+            alt="Foto do projeto ${escapeHTML(projeto.name)}">
+        ` : ''}
+
+        <h3>${escapeHTML(projeto.name)}</h3>
+        <p>${escapeHTML(projeto.description || 'Adicione uma descrição para explicar sua ideia.')}</p>
+
+        <span class="tag">${escapeHTML(projeto.category || 'Tecnologia')}</span>
+
+        <div class="progress" aria-label="Progresso de ${progresso}%">
+          <span style="width:${progresso}%"></span>
+        </div>
+
+        <div class="meta">
+          <span>${tarefas} tarefa(s)</span>
+          <strong>${progresso}% concluído</strong>
+        </div>
+
+        <div class="project-actions">
+          <button data-edit="project" data-id="${projeto.id}">
+            <i class="fa-solid fa-pen"></i> Editar
+          </button>
+
+          <button data-project-tasks="${projeto.id}">
+            <i class="fa-solid fa-list-check"></i> Tarefas
+          </button>
+
+          <button class="delete-btn" data-delete="project" data-id="${projeto.id}">
+            <i class="fa-solid fa-trash"></i> Excluir
+          </button>
+        </div>
+      </article>
+    `;
+  }).join('');
+
+  if ($('#projectGrid')) $('#projectGrid').innerHTML = html;
+
+  if ($('#dashboardProjects')) {
+    $('#dashboardProjects').innerHTML = db.projects.slice(0, 3).map(projeto => {
+      const progresso = progressoProjeto(projeto.id);
+
+      return `
+        <article class="project-card">
+          <div class="project-top">
+            <div class="project-symbol">
+              <i class="fa-solid fa-flask"></i>
+            </div>
+            <span class="tag">${progresso}% concluído</span>
+          </div>
+
+          <h3>${escapeHTML(projeto.name)}</h3>
+          <p>${escapeHTML(projeto.description || 'Seu projeto está pronto para receber novas informações.')}</p>
+
+          <div class="progress">
+            <span style="width:${progresso}%"></span>
+          </div>
+
+          <div class="project-actions">
+            <button data-project-tasks="${projeto.id}">
+              Ver tarefas <i class="fa-solid fa-arrow-right"></i>
+            </button>
+            <button data-edit="project" data-id="${projeto.id}">
+              Editar
+            </button>
+          </div>
+        </article>
+      `;
+    }).join('');
+  }
+
+  $('#emptyProjects')?.toggleAttribute('hidden', projetos.length > 0);
+  $('#dashboardEmpty')?.toggleAttribute('hidden', db.projects.length > 0);
+}
+
+// ==========================================
+// 8. TAREFAS
+// ==========================================
+
+function renderizarTarefas() {
+  atualizarSelects();
+
+  const seletor = $('#taskProjectSelect');
+  if (!seletor) return;
+
+  const projectId = seletor.value;
+  const quadro = $('#kanbanBoard');
+
+  if (!quadro) return;
+
+  if (!db.projects.length) {
+    quadro.innerHTML = `
+      <div class="panel empty">
+        <i class="fa-solid fa-list-check"></i>
+        <h3>Vamos criar sua primeira tarefa?</h3>
+        <p>Primeiro crie um projeto. Depois você poderá dividir o trabalho em etapas.</p>
+        <button class="btn primary" data-action="new-project">
+          Criar projeto
+        </button>
+      </div>
+    `;
     return;
   }
 
-  if (action === 'print-notebook') {
-    printPage('notebook');
+  const colunas = [
+    { id: 'todo', nome: 'A fazer', dica: 'Atividades que ainda não começaram.' },
+    { id: 'doing', nome: 'Em andamento', dica: 'Atividades em que você está trabalhando.' },
+    { id: 'done', nome: 'Concluído', dica: 'Atividades que já foram finalizadas.' }
+  ];
+
+  quadro.innerHTML = colunas.map(coluna => {
+    const tarefas = db.tasks.filter(
+      tarefa => tarefa.projectId === projectId && tarefa.status === coluna.id
+    );
+
+    return `
+      <div class="kanban-col">
+        <div class="kanban-head">
+          <span>${coluna.nome}</span>
+          <span>${tarefas.length}</span>
+        </div>
+
+        <p class="help-text">${coluna.dica}</p>
+
+        ${tarefas.length ? tarefas.map(tarefa => `
+          <article class="task">
+            <div class="task-title">${escapeHTML(tarefa.name)}</div>
+
+            ${tarefa.description ? `<p>${escapeHTML(tarefa.description)}</p>` : ''}
+
+            ${tarefa.due ? `<small><i class="fa-regular fa-calendar"></i> Prazo: ${dataBonita(tarefa.due)}</small>` : ''}
+
+            <div class="task-actions">
+              ${coluna.id !== 'todo' ? `
+                <button title="Mover para A fazer"
+                  data-task-status="todo" data-id="${tarefa.id}">
+                  <i class="fa-solid fa-arrow-left"></i>
+                </button>
+              ` : ''}
+
+              ${coluna.id !== 'doing' ? `
+                <button title="Mover para Em andamento"
+                  data-task-status="doing" data-id="${tarefa.id}">
+                  <i class="fa-solid fa-play"></i>
+                </button>
+              ` : ''}
+
+              ${coluna.id !== 'done' ? `
+                <button title="Marcar como concluída"
+                  data-task-status="done" data-id="${tarefa.id}">
+                  <i class="fa-solid fa-check"></i>
+                </button>
+              ` : ''}
+
+              <button data-edit="task" data-id="${tarefa.id}" title="Editar tarefa">
+                <i class="fa-solid fa-pen"></i>
+              </button>
+
+              <button class="delete-btn" data-delete="task" data-id="${tarefa.id}" title="Excluir tarefa">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+          </article>
+        `).join('') : `
+          <div class="empty">
+            <i class="fa-regular fa-clipboard"></i>
+            <p>Nenhuma tarefa nesta etapa.</p>
+          </div>
+        `}
+      </div>
+    `;
+  }).join('');
+}
+
+function mudarStatusTarefa(id, status) {
+  const tarefa = db.tasks.find(item => item.id === id);
+
+  if (!tarefa) return;
+
+  tarefa.status = status;
+
+  if (salvar()) {
+    renderizarTudo();
+
+    const nomes = {
+      todo: 'A fazer',
+      doing: 'Em andamento',
+      done: 'Concluída'
+    };
+
+    toast(`Tarefa movida para "${nomes[status]}".`);
+  }
+}
+
+// ==========================================
+// 9. MATERIAIS E CUSTOS
+// ==========================================
+
+function renderizarMateriais() {
+  const projectId = projetoAtual;
+  const materiais = db.materials.filter(item => item.projectId === projectId);
+
+  const total = materiais.reduce(
+    (soma, item) => soma + Number(item.quantity) * Number(item.price),
+    0
+  );
+
+  if ($('#materialCount')) {
+    $('#materialCount').textContent = materiais.length;
+  }
+
+  if ($('#materialTotal')) {
+    $('#materialTotal').textContent = money(total);
+  }
+
+  if ($('#materialProjectLabel')) {
+    $('#materialProjectLabel').textContent = projectId
+      ? `Materiais do projeto: ${nomeProjeto(projectId)}`
+      : 'Crie um projeto para cadastrar materiais.';
+  }
+
+  if ($('#materialsTable')) {
+    $('#materialsTable').innerHTML = materiais.length ? `
+      <table>
+        <thead>
+          <tr>
+            <th>Material</th>
+            <th>Quantidade</th>
+            <th>Preço unitário</th>
+            <th>Total</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${materiais.map(item => `
+            <tr>
+              <td>${escapeHTML(item.name)}</td>
+              <td>${Number(item.quantity)}</td>
+              <td>${money(item.price)}</td>
+              <td>${money(item.quantity * item.price)}</td>
+              <td>
+                <button class="btn soft" data-edit="material" data-id="${item.id}">
+                  Editar
+                </button>
+                <button class="btn danger" data-delete="material" data-id="${item.id}">
+                  Excluir
+                </button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    ` : '';
+  }
+
+  $('#emptyMaterials')?.toggleAttribute('hidden', materiais.length > 0);
+}
+
+// ==========================================
+// 10. TESTES E MELHORIAS
+// ==========================================
+
+function renderizarTestes() {
+  atualizarSelects();
+
+  const projectId = $('#testProjectSelect')?.value || '';
+  const testes = db.tests
+    .filter(item => item.projectId === projectId)
+    .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+
+  if ($('#testList')) {
+    $('#testList').innerHTML = testes.map(item => `
+      <article class="entry">
+        <h4>${escapeHTML(item.name)}</h4>
+        <p><strong>Projeto:</strong> ${escapeHTML(nomeProjeto(item.projectId))}</p>
+        <p><strong>Data:</strong> ${dataBonita(item.date)}</p>
+
+        ${item.description ? `<p><strong>O que foi feito:</strong> ${escapeHTML(item.description)}</p>` : ''}
+        ${item.result ? `<p><strong>Resultado:</strong> ${escapeHTML(item.result)}</p>` : ''}
+        ${item.improvement ? `<p><strong>Próxima melhoria:</strong> ${escapeHTML(item.improvement)}</p>` : ''}
+
+        ${item.image ? `<div class="entry-photos"><img src="${item.image}" alt="Foto do teste"></div>` : ''}
+
+        <div class="card-actions">
+          <button data-edit="test" data-id="${item.id}">Editar teste</button>
+          <button class="delete-btn" data-delete="test" data-id="${item.id}">Excluir teste</button>
+        </div>
+      </article>
+    `).join('');
+  }
+
+  $('#emptyTests')?.toggleAttribute('hidden', testes.length > 0);
+}
+
+// ==========================================
+// 11. DIÁRIO DE BORDO
+// ==========================================
+
+let fotosDiario = [];
+
+function prepararFotos(seletor, previewSeletor, aoSelecionar) {
+  const input = $(seletor);
+  const preview = $(previewSeletor);
+
+  if (!input || !preview) return;
+
+  input.addEventListener('change', async () => {
+    preview.innerHTML = '';
+
+    const arquivos = [...(input.files || [])].slice(0, 6);
+    const imagens = [];
+
+    for (const arquivo of arquivos) {
+      try {
+        const imagem = await comprimirImagem(arquivo);
+        imagens.push(imagem);
+        preview.insertAdjacentHTML(
+          'beforeend',
+          `<img src="${imagem}" alt="Prévia da imagem">`
+        );
+      } catch {
+        toast('Uma das imagens não pôde ser carregada.', 'error');
+      }
+    }
+
+    aoSelecionar(imagens);
+  });
+}
+
+function renderizarDiario() {
+  const projectId = $('#notebookProjectSelect')?.value || '';
+
+  const registros = db.notebook
+    .filter(item => item.projectId === projectId)
+    .sort((a, b) => String(b.date).localeCompare(String(a.date)));
+
+  if ($('#notebookList')) {
+    $('#notebookList').innerHTML = registros.map(item => `
+      <article class="entry">
+        <span class="tag">${escapeHTML(item.type || 'Atividade')}</span>
+        <h4>${escapeHTML(item.title)}</h4>
+        <p><strong>Data:</strong> ${dataBonita(item.date)}</p>
+        <p><strong>Responsável:</strong> ${escapeHTML(item.author || 'Não informado')}</p>
+        <p>${escapeHTML(item.description)}</p>
+
+        ${item.next ? `<p><strong>Próximos passos:</strong> ${escapeHTML(item.next)}</p>` : ''}
+
+        ${item.images?.length ? `
+          <div class="entry-photos">
+            ${item.images.map((imagem, indice) => `
+              <img src="${imagem}" alt="Foto ${indice + 1} do registro">
+            `).join('')}
+          </div>
+        ` : ''}
+
+        <div class="card-actions">
+          <button class="delete-btn" data-delete-notebook="${item.id}">
+            <i class="fa-solid fa-trash"></i> Excluir registro
+          </button>
+        </div>
+      </article>
+    `).join('');
+  }
+
+  $('#emptyNotebook')?.toggleAttribute('hidden', registros.length > 0);
+}
+
+function salvarRegistroDiario(evento) {
+  evento.preventDefault();
+
+  const projectId = $('#notebookProjectSelect')?.value;
+  const title = texto($('#notebookTitle')?.value);
+  const description = texto($('#notebookDescription')?.value);
+
+  if (!projectId) {
+    toast('Crie um projeto antes de salvar um registro.', 'error');
     return;
   }
 
-  if (action === 'print-compare') {
-    printPage('compare');
+  if (!title || !description) {
+    toast('Preencha o título e a descrição do registro.', 'error');
     return;
   }
 
-  const editProject = event.target.closest('[data-edit-project]');
+  db.notebook.push({
+    id: uid(),
+    projectId,
+    date: $('#notebookDate')?.value || dataHoje(),
+    type: $('#notebookType')?.value || 'Atividade',
+    author: texto($('#notebookAuthor')?.value),
+    title,
+    description,
+    next: texto($('#notebookNext')?.value),
+    images: fotosDiario
+  });
 
-  if (editProject) {
-    return newProject(findProject(editProject.dataset.editProject));
+  if (salvar()) {
+    $('#notebookForm')?.reset();
+    $('#notebookDate').value = dataHoje();
+    $('#notebookPhotoPreview').innerHTML = '';
+    fotosDiario = [];
+    renderizarDiario();
+    toast('Registro salvo no diário de bordo!');
+  }
+}
+
+// ==========================================
+// 12. RELATÓRIO TÉCNICO
+// ==========================================
+
+let fotosRelatorio = [];
+
+function dadosRelatorio() {
+  const projectId = $('#technicalProjectSelect')?.value || '';
+  const projeto = obterProjeto(projectId);
+  const salvo = db.reports[projectId] || {};
+
+  return {
+    projectId,
+    projectName: projeto?.name || 'Projeto não selecionado',
+    team: texto($('#reportTeam')?.value ?? salvo.team),
+    institution: texto($('#reportInstitution')?.value ?? salvo.institution),
+    objective: texto($('#reportObjective')?.value ?? salvo.objective),
+    method: texto($('#reportMethod')?.value ?? salvo.method),
+    limits: texto($('#reportLimits')?.value ?? salvo.limits),
+    images: fotosRelatorio.length ? fotosRelatorio : (salvo.images || [])
+  };
+}
+
+function carregarRelatorio() {
+  const projectId = $('#technicalProjectSelect')?.value;
+
+  if (!projectId) return;
+
+  const salvo = db.reports[projectId] || {};
+
+  $('#reportTeam').value = salvo.team || '';
+  $('#reportInstitution').value = salvo.institution || '';
+  $('#reportObjective').value = salvo.objective || '';
+  $('#reportMethod').value = salvo.method || '';
+  $('#reportLimits').value = salvo.limits || '';
+
+  fotosRelatorio = salvo.images || [];
+
+  const preview = $('#reportImagePreview');
+
+  if (preview) {
+    preview.innerHTML = fotosRelatorio.map(imagem =>
+      `<img src="${imagem}" alt="Imagem do relatório">`
+    ).join('');
   }
 
-  const deleteProject = event.target.closest('[data-delete-project]');
+  renderizarRelatorio();
+}
 
-  if (deleteProject) {
-    if (!confirm('Deseja excluir esse projeto e os registros relacionados?')) return;
+function renderizarRelatorio() {
+  const preview = $('#technicalPreview');
 
-    const id = deleteProject.dataset.deleteProject;
+  if (!preview) return;
 
-    data.projects = data.projects.filter(p => p.id !== id);
-    data.tasks = data.tasks.filter(item => item.project !== id);
-    data.materials = data.materials.filter(item => item.project !== id);
-    data.tests = data.tests.filter(item => item.project !== id);
-    data.entries = data.entries.filter(item => item.project !== id);
-    delete data.reports[id];
+  const dados = dadosRelatorio();
 
-    save();
-    toast('Projeto excluído.');
+  preview.innerHTML = `
+    <h2>Relatório técnico</h2>
+    <p><strong>Projeto:</strong> ${escapeHTML(dados.projectName)}</p>
+    <p><strong>Instituição:</strong> ${escapeHTML(dados.institution || 'Não informada')}</p>
+    <p><strong>Equipe:</strong> ${escapeHTML(dados.team || 'Não informada')}</p>
+
+    <h3>1. Objetivo</h3>
+    <p>${escapeHTML(dados.objective || 'Descreva aqui o objetivo do projeto.')}</p>
+
+    <h3>2. Metodologia</h3>
+    <p>${escapeHTML(dados.method || 'Explique as etapas e os materiais utilizados.')}</p>
+
+    <h3>3. Limitações e próximos passos</h3>
+    <p>${escapeHTML(dados.limits || 'Registre as dificuldades e as melhorias planejadas.')}</p>
+
+    ${dados.images.length ? `
+      <h3>4. Fotos do projeto</h3>
+      <div class="entry-photos">
+        ${dados.images.map((imagem, indice) => `
+          <img src="${imagem}" alt="Foto ${indice + 1} do projeto">
+        `).join('')}
+      </div>
+    ` : `
+      <p class="muted">Nenhuma foto adicionada ao relatório.</p>
+    `}
+  `;
+}
+
+function salvarRelatorio(evento) {
+  evento.preventDefault();
+
+  const dados = dadosRelatorio();
+
+  if (!dados.projectId) {
+    toast('Escolha um projeto para salvar o relatório.', 'error');
     return;
   }
 
-  const projectTasksButton = event.target.closest('[data-project-tasks]');
+  db.reports[dados.projectId] = {
+    team: dados.team,
+    institution: dados.institution,
+    objective: dados.objective,
+    method: dados.method,
+    limits: dados.limits,
+    images: dados.images,
+    updatedAt: new Date().toISOString()
+  };
 
-  if (projectTasksButton) {
-    go('tasks');
-    $('#taskProjectSelect').value = projectTasksButton.dataset.projectTasks;
-    renderTasks();
+  if (salvar()) {
+    toast('Relatório atualizado e salvo!');
+    renderizarRelatorio();
+  }
+}
+
+// ==========================================
+// 13. COMPARAR PROTÓTIPOS
+// ==========================================
+
+function lerComparacaoFormulario() {
+  const numero = id => Number($(id)?.value) || 0;
+
+  return {
+    a: {
+      name: texto($('#versionAName')?.value) || 'Protótipo A',
+      cost: numero('#versionACost'),
+      accuracy: numero('#versionAAccuracy'),
+      resistance: numero('#versionAResistance'),
+      notes: texto($('#versionANotes')?.value)
+    },
+    b: {
+      name: texto($('#versionBName')?.value) || 'Protótipo B',
+      cost: numero('#versionBCost'),
+      accuracy: numero('#versionBAccuracy'),
+      resistance: numero('#versionBResistance'),
+      notes: texto($('#versionBNotes')?.value)
+    }
+  };
+}
+
+function compararVersoes() {
+  const dados = lerComparacaoFormulario();
+
+  for (const versao of [dados.a, dados.b]) {
+    if (versao.cost < 0 || versao.accuracy < 0 || versao.accuracy > 100 ||
+        versao.resistance < 0 || versao.resistance > 100) {
+      toast('Confira os valores. As porcentagens precisam ficar entre 0 e 100.', 'error');
+      return;
+    }
+  }
+
+  db.compare = dados;
+  salvar();
+
+  mostrarComparacao(dados);
+  toast('Comparação realizada!');
+}
+
+function mostrarComparacao(dados) {
+  const tabela = $('#comparisonTable');
+  const conclusao = $('#comparisonConclusion');
+
+  if (!tabela || !conclusao) return;
+
+  const metricas = [
+    { chave: 'cost', nome: 'Custo', formato: money, menor: true },
+    { chave: 'accuracy', nome: 'Precisão', formato: v => `${v}%`, menor: false },
+    { chave: 'resistance', nome: 'Resistência', formato: v => `${v}%`, menor: false }
+  ];
+
+  tabela.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>Característica</th>
+          <th>${escapeHTML(dados.a.name)}</th>
+          <th>${escapeHTML(dados.b.name)}</th>
+          <th>Comparação</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        ${metricas.map(metrica => {
+          const a = dados.a[metrica.chave];
+          const b = dados.b[metrica.chave];
+
+          let vencedor = 'Empate';
+
+          if (a !== b) {
+            vencedor = metrica.menor
+              ? (a < b ? dados.a.name : dados.b.name)
+              : (a > b ? dados.a.name : dados.b.name);
+          }
+
+          return `
+            <tr>
+              <td>${metrica.nome}</td>
+              <td>${metrica.formato(a)}</td>
+              <td>${metrica.formato(b)}</td>
+              <td>${escapeHTML(vencedor)}</td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
+  `;
+
+  const custoTexto = dados.a.cost === dados.b.cost
+    ? 'As duas versões têm o mesmo custo.'
+    : `${dados.a.cost < dados.b.cost ? dados.a.name : dados.b.name} tem o menor custo.`;
+
+  const precisaoTexto = dados.a.accuracy === dados.b.accuracy
+    ? 'As duas versões têm a mesma precisão.'
+    : `${dados.a.accuracy > dados.b.accuracy ? dados.a.name : dados.b.name} tem a maior precisão.`;
+
+  const resistenciaTexto = dados.a.resistance === dados.b.resistance
+    ? 'As duas versões têm a mesma resistência.'
+    : `${dados.a.resistance > dados.b.resistance ? dados.a.name : dados.b.name} tem a maior resistência.`;
+
+  conclusao.innerHTML = `
+    <strong>Resumo da comparação</strong><br>
+    ${escapeHTML(custoTexto)}<br>
+    ${escapeHTML(precisaoTexto)}<br>
+    ${escapeHTML(resistenciaTexto)}<br><br>
+    <strong>Lembrete:</strong> o melhor protótipo depende do objetivo do seu projeto.
+    Considere também segurança, facilidade de construção e resultados dos testes.
+  `;
+}
+
+function carregarComparacao() {
+  if (db.compare) mostrarComparacao(db.compare);
+}
+
+function limparComparacao() {
+  if (!confirmar('Deseja limpar os dados da comparação?')) return;
+
+  $('#compareFormA')?.reset();
+  $('#compareFormB')?.reset();
+
+  $('#comparisonTable').innerHTML = '';
+  $('#comparisonConclusion').textContent = '';
+
+  db.compare = null;
+  salvar();
+
+  toast('Comparação limpa.');
+}
+
+// ==========================================
+// 14. GERADOR DE IDEIAS
+// ==========================================
+
+function gerarIdeias(tema) {
+  const modelos = [
+    {
+      titulo: 'Solução inteligente',
+      icone: 'fa-lightbulb',
+      problema: 'Um processo que poderia ser mais simples, rápido ou seguro.',
+      solucao: `Criar uma solução para melhorar ${tema}, usando materiais acessíveis e um protótipo simples.`,
+      materiais: 'Papelão, materiais reutilizados, sensores ou componentes básicos.',
+      teste: 'Verificar se a solução funciona em diferentes situações.'
+    },
+    {
+      titulo: 'Projeto sustentável',
+      icone: 'fa-leaf',
+      problema: 'Desperdício de recursos ou materiais que poderiam ser reaproveitados.',
+      solucao: `Desenvolver uma alternativa sustentável relacionada a ${tema}.`,
+      materiais: 'Materiais recicláveis, recipientes reutilizados e ferramentas de montagem.',
+      teste: 'Comparar o consumo de recursos antes e depois da solução.'
+    },
+    {
+      titulo: 'Automação de uma tarefa',
+      icone: 'fa-gears',
+      problema: 'Uma tarefa repetitiva que exige tempo ou esforço desnecessário.',
+      solucao: `Construir um protótipo que automatize uma etapa relacionada a ${tema}.`,
+      materiais: 'Microcontrolador opcional, sensores, fios e materiais de montagem.',
+      teste: 'Realizar a mesma tarefa várias vezes e registrar os resultados.'
+    },
+    {
+      titulo: 'Monitoramento e segurança',
+      icone: 'fa-shield-halved',
+      problema: 'Dificuldade de perceber mudanças, falhas ou situações de risco.',
+      solucao: `Planejar um sistema que ajude a acompanhar ${tema} e avise quando algo precisar de atenção.`,
+      materiais: 'Indicadores visuais, sensores apropriados e materiais de prototipagem.',
+      teste: 'Simular situações diferentes e verificar se os avisos são compreensíveis.'
+    }
+  ];
+
+  return modelos.map((modelo, indice) => ({
+    ...modelo,
+    id: String(indice),
+    tema
+  }));
+}
+
+function renderizarIdeias(tema) {
+  const resultados = $('#ideaResults');
+  const escolhido = $('#ideaChosen');
+
+  if (!resultados) return;
+
+  escolhido.hidden = true;
+
+  const ideias = gerarIdeias(tema);
+
+  resultados.innerHTML = `
+    <div class="idea-results-head">
+      <div>
+        <h3>Ideias para: ${escapeHTML(tema)}</h3>
+        <p class="muted">Escolha a sugestão que mais combina com seu objetivo.</p>
+      </div>
+      <span class="idea-count">${ideias.length} sugestões</span>
+    </div>
+
+    <div class="idea-grid">
+      ${ideias.map(ideia => `
+        <article class="idea-card">
+          <div class="idea-card-top">
+            <div class="idea-icon">
+              <i class="fa-solid ${ideia.icone}"></i>
+            </div>
+            <span class="idea-number">Ideia ${Number(ideia.id) + 1}</span>
+          </div>
+
+          <h3>${escapeHTML(ideia.titulo)}</h3>
+          <p>${escapeHTML(ideia.problema)}</p>
+
+          <div class="idea-detail">
+            <b>Possível solução</b>
+            <span>${escapeHTML(ideia.solucao)}</span>
+          </div>
+
+          <div class="idea-detail">
+            <b>Materiais possíveis</b>
+            <span>${escapeHTML(ideia.materiais)}</span>
+          </div>
+
+          <div class="idea-detail">
+            <b>Como testar</b>
+            <span>${escapeHTML(ideia.teste)}</span>
+          </div>
+
+          <button class="btn primary idea-select"
+            data-choose-idea="${escapeHTML(ideia.id)}"
+            data-topic="${escapeHTML(tema)}">
+            Escolher esta ideia
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </article>
+      `).join('')}
+    </div>
+  `;
+}
+
+function escolherIdeia(indice, tema) {
+  const ideia = gerarIdeias(tema)[Number(indice)];
+
+  if (!ideia) return;
+
+  const escolhido = $('#ideaChosen');
+
+  escolhido.hidden = false;
+
+  escolhido.innerHTML = `
+    <div>
+      <span class="tag">Ideia selecionada</span>
+      <h3>${escapeHTML(ideia.titulo)}</h3>
+      <p>${escapeHTML(ideia.solucao)}</p>
+      <p><strong>Próximo passo:</strong> crie um projeto e use essa descrição para começar a organizar seu trabalho.</p>
+    </div>
+
+    <button class="btn primary" data-create-idea="${escapeHTML(ideia.titulo)}"
+      data-description="${escapeHTML(ideia.solucao)}">
+      <i class="fa-solid fa-plus"></i> Criar projeto com esta ideia
+    </button>
+  `;
+
+  escolhido.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// ==========================================
+// 15. IMPRIMIR E SALVAR EM PDF
+// ==========================================
+
+function imprimirPagina(pagina) {
+  navegar(pagina);
+
+  setTimeout(() => {
+    window.print();
+  }, 200);
+}
+
+// ==========================================
+// 16. NÚMEROS DA PÁGINA INICIAL
+// ==========================================
+
+function atualizarEstatisticas() {
+  const ativos = db.projects.filter(p => p.status !== 'done').length;
+  const pendentes = db.tasks.filter(t => t.status !== 'done').length;
+  const concluidas = db.tasks.filter(t => t.status === 'done').length;
+
+  if ($('#statActive')) $('#statActive').textContent = ativos;
+  if ($('#statPending')) $('#statPending').textContent = pendentes;
+  if ($('#statDone')) $('#statDone').textContent = concluidas;
+  if ($('#statTests')) $('#statTests').textContent = db.tests.length;
+}
+
+// ==========================================
+// 17. ATUALIZAR A INTERFACE
+// ==========================================
+
+function renderizarTudo() {
+  atualizarSelects();
+  renderizarProjetos();
+  renderizarTarefas();
+  renderizarMateriais();
+  renderizarTestes();
+  renderizarDiario();
+  renderizarRelatorio();
+  atualizarEstatisticas();
+}
+
+// ==========================================
+// 18. CLIQUES NOS BOTÕES
+// ==========================================
+
+document.addEventListener('click', evento => {
+  const botao = evento.target.closest('button');
+
+  if (!botao) return;
+
+  if (botao.dataset.page) {
+    navegar(botao.dataset.page);
     return;
   }
 
-  const toggleTask = event.target.closest('[data-toggle-task]');
+  if (botao.dataset.action) {
+    const acao = botao.dataset.action;
 
-  if (toggleTask) {
-    const task = data.tasks.find(t => t.id === toggleTask.dataset.toggleTask);
+    const acoes = {
+      'new-project': () => abrirModal('project'),
+      'new-task': () => {
+        if (!db.projects.length) {
+          toast('Crie um projeto antes de adicionar tarefas.', 'error');
+          abrirModal('project');
+        } else {
+          abrirModal('task');
+        }
+      },
+      'new-material': () => {
+        if (!db.projects.length) {
+          toast('Crie um projeto antes de adicionar materiais.', 'error');
+          abrirModal('project');
+        } else {
+          abrirModal('material');
+        }
+      },
+      'new-test': () => {
+        if (!db.projects.length) {
+          toast('Crie um projeto antes de registrar testes.', 'error');
+          abrirModal('project');
+        } else {
+          abrirModal('test');
+        }
+      },
+      'compare': compararVersoes,
+      'reset-compare': limparComparacao,
+      'print-technical': () => imprimirPagina('technical'),
+      'print-notebook': () => imprimirPagina('notebook')
+    };
 
-    if (task) {
-      task.status = task.status === 'todo'
-        ? 'doing'
-        : task.status === 'doing'
-          ? 'done'
-          : 'todo';
+    acoes[acao]?.();
+    return;
+  }
 
-      save();
+  if (botao.dataset.edit) {
+    abrirModal(botao.dataset.edit, botao.dataset.id);
+    return;
+  }
+
+  if (botao.dataset.delete) {
+    excluirItem(botao.dataset.delete, botao.dataset.id);
+    return;
+  }
+
+  if (botao.dataset.taskStatus) {
+    mudarStatusTarefa(botao.dataset.id, botao.dataset.taskStatus);
+    return;
+  }
+
+  if (botao.dataset.projectTasks) {
+    projetoAtual = botao.dataset.projectTasks;
+    preencherSelectProjetos('#taskProjectSelect', projetoAtual);
+    navegar('tasks');
+    renderizarTarefas();
+    return;
+  }
+
+  if (botao.dataset.deleteNotebook) {
+    if (confirmar('Deseja excluir este registro do diário de bordo?')) {
+      db.notebook = db.notebook.filter(item => item.id !== botao.dataset.deleteNotebook);
+
+      if (salvar()) {
+        renderizarDiario();
+        toast('Registro excluído.');
+      }
     }
 
     return;
   }
 
-  const editTask = event.target.closest('[data-edit-task]');
-
-  if (editTask) {
-    return newTask(data.tasks.find(t => t.id === editTask.dataset.editTask));
-  }
-
-  const deleteTask = event.target.closest('[data-delete-task]');
-
-  if (deleteTask) {
-    if (!confirm('Deseja excluir essa tarefa?')) return;
-
-    data.tasks = data.tasks.filter(t => t.id !== deleteTask.dataset.deleteTask);
-    save();
+  if (botao.dataset.chooseIdea !== undefined) {
+    escolherIdeia(botao.dataset.chooseIdea, botao.dataset.topic);
     return;
   }
 
-  const editMaterial = event.target.closest('[data-edit-material]');
+  if (botao.dataset.createIdea) {
+    const titulo = botao.dataset.createIdea;
+    const descricao = botao.dataset.description;
 
-  if (editMaterial) {
-    return newMaterial(data.materials.find(m => m.id === editMaterial.dataset.editMaterial));
-  }
+    abrirModal('project');
 
-  const deleteMaterial = event.target.closest('[data-delete-material]');
+    setTimeout(() => {
+      if ($('#modalName')) $('#modalName').value = titulo;
+      if ($('#modalDescription')) $('#modalDescription').value = descricao;
+    }, 50);
 
-  if (deleteMaterial) {
-    if (!confirm('Deseja excluir esse material?')) return;
-
-    data.materials = data.materials.filter(m => m.id !== deleteMaterial.dataset.deleteMaterial);
-    save();
     return;
-  }
-
-  const deleteTest = event.target.closest('[data-delete-test]');
-
-  if (deleteTest) {
-    if (!confirm('Deseja excluir esse teste?')) return;
-
-    data.tests = data.tests.filter(t => t.id !== deleteTest.dataset.deleteTest);
-    save();
-    return;
-  }
-
-  const deleteEntry = event.target.closest('[data-delete-entry]');
-
-  if (deleteEntry) {
-    if (!confirm('Deseja excluir essa página do diário?')) return;
-
-    data.entries = data.entries.filter(e => e.id !== deleteEntry.dataset.deleteEntry);
-    save();
   }
 });
 
-function printPage(page) {
-  const sections = $$('.page');
+// ==========================================
+// 19. FORMULÁRIOS
+// ==========================================
 
-  sections.forEach(section => section.classList.remove('printing'));
+$('#modalForm')?.addEventListener('submit', salvarItemModal);
 
-  const selected = $(`#page-${page}`);
-  if (!selected) return;
+$('#modalClose')?.addEventListener('click', fecharModal);
+$('#modalCancel')?.addEventListener('click', fecharModal);
 
-  selected.classList.add('printing');
+$('#modalBackdrop')?.addEventListener('click', evento => {
+  if (evento.target.id === 'modalBackdrop') fecharModal();
+});
 
-  window.print();
+$('#projectSearch')?.addEventListener('input', renderizarProjetos);
 
-  setTimeout(() => selected.classList.remove('printing'), 500);
+$('#taskProjectSelect')?.addEventListener('change', evento => {
+  projetoAtual = evento.target.value;
+  renderizarTarefas();
+});
+
+$('#testProjectSelect')?.addEventListener('change', renderizarTestes);
+
+$('#technicalProjectSelect')?.addEventListener('change', carregarRelatorio);
+
+$('#notebookProjectSelect')?.addEventListener('change', renderizarDiario);
+
+$('#technicalForm')?.addEventListener('submit', salvarRelatorio);
+
+$('#notebookForm')?.addEventListener('submit', salvarRegistroDiario);
+
+$('#ideaForm')?.addEventListener('submit', evento => {
+  evento.preventDefault();
+
+  const tema = texto($('#ideaTopic')?.value);
+
+  if (tema.length < 2) {
+    toast('Digite um tema com pelo menos duas letras.', 'error');
+    return;
+  }
+
+  renderizarIdeias(tema);
+});
+
+$('#compareFormA')?.addEventListener('submit', evento => evento.preventDefault());
+$('#compareFormB')?.addEventListener('submit', evento => evento.preventDefault());
+
+// ==========================================
+// 20. PRÉVIA DAS FOTOS
+// ==========================================
+
+prepararFotos('#notebookPhotos', '#notebookPhotoPreview', imagens => {
+  fotosDiario = imagens;
+});
+
+prepararFotos('#reportImages', '#reportImagePreview', imagens => {
+  fotosRelatorio = imagens;
+  renderizarRelatorio();
+});
+
+// ==========================================
+// 21. MENU PARA CELULAR
+// ==========================================
+
+$('#mobileMenu')?.addEventListener('click', () => {
+  $('#sidebar')?.classList.toggle('open');
+});
+
+document.addEventListener('keydown', evento => {
+  if (evento.key === 'Escape') {
+    fecharModal();
+    $('#sidebar')?.classList.remove('open');
+  }
+});
+
+// ==========================================
+// 22. INICIAR O SITE
+// ==========================================
+
+function iniciarCleberLab() {
+  projetoAtual = db.projects[0]?.id || '';
+
+  if ($('#notebookDate')) {
+    $('#notebookDate').value = dataHoje();
+  }
+
+  atualizarSelects();
+  renderizarTudo();
+
+  const paginaInicial = $('#page-dashboard');
+
+  if (paginaInicial) {
+    navegar('dashboard');
+  }
+
+  console.info('CleberLab iniciado.');
 }
 
-function renderStats() {
-  $('#statActive').textContent =
-    data.projects.filter(p => p.status !== 'Concluído').length;
-
-  $('#statPending').textContent =
-    data.tasks.filter(t => t.status !== 'done').length;
-
-  $('#statDone').textContent =
-    data.tasks.filter(t => t.status === 'done').length;
-
-  $('#statTests').textContent = data.tests.length;
-}
-
-function refresh() {
-  renderStats();
-  renderProjects();
-  renderTasks();
-  renderMaterials();
-  renderTests();
-  renderNotebook();
-  renderTechnical();
-}
-
-function init() {
-  $('#notebookDate').value = today();
-
-  fillProjectSelect('#taskProjectSelect');
-  fillProjectSelect('#materialProjectSelect');
-  fillProjectSelect('#testProjectSelect');
-  fillProjectSelect('#technicalProjectSelect');
-  fillProjectSelect('#notebookProjectSelect');
-
-  refresh();
-}
-
-init();
+iniciarCleberLab();
